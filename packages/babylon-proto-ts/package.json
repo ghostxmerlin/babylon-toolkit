@@ -1,0 +1,28 @@
+{
+  "name": "@babylonlabs-io/babylon-proto-ts",
+  "version": "0.0.3-canary.5",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build tsconfig.lib.json && node scripts/build-proto.js",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist",
+    "dist/**/*.d.ts"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@bufbuild/buf": "^1.45.0",
+    "shelljs": "^0.8.5"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
