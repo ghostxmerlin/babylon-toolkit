@@ -5,5 +5,5 @@ export function exampleLib2(): string {
 }
 
 export function newExampleLib2(): string {
-  return 'this one';
+  return 'this two';
 }
