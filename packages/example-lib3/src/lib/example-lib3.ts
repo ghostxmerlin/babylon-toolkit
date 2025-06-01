@@ -5,5 +5,5 @@ export function exampleLib3(): string {
 }
 
 export function newExampleLib3(): string {
-  return 'this is totally new';
+  return 'this is totally new one';
 }
