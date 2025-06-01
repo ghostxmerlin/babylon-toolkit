@@ -1,16 +1,22 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "namedInputs": {
-    "default": [
-      "{projectRoot}/**/*",
-      "sharedGlobals"
-    ],
-    "production": [
-      "default"
-    ],
-    "sharedGlobals": [
-      "{workspaceRoot}/.github/workflows/ci.yml"
-    ]
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": ["default"],
+    "sharedGlobals": []
+  },
+  "targetDefaults": {
+    "serve": {
+      "dependsOn": ["build"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/dist"],
+      "cache": true
+    },
+    "typecheck": {
+      "cache": true
+    }
   },
   "plugins": [
     {
@@ -29,10 +35,17 @@
     }
   ],
   "release": {
+    "projects": ["packages/*", "!@babylonlabs-io/babylon-proto-ts"],
     "projectsRelationship": "independent",
     "releaseTagPattern": "{projectName}/{version}",
     "changelog": {
-      "projectChangelogs": true
+      "createRelease": "github",
+      "file": false
+    },
+    "version": {
+      "conventionalCommits": true,
+      "preserveLocalDependencyProtocols": false,
+      "fallbackCurrentVersionResolver": "disk"
     }
   }
 }
