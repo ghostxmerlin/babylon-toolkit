@@ -1,20 +1,36 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "namedInputs": {
-    "default": ["{projectRoot}/**/*", "sharedGlobals"],
-    "production": ["default"],
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
+    "production": [
+      "default",
+      "!{projectRoot}/.eslintrc.json",
+      "!{projectRoot}/eslint.config.mjs"
+    ],
     "sharedGlobals": []
   },
   "targetDefaults": {
     "serve": {
-      "dependsOn": ["build"]
+      "dependsOn": [
+        "build"
+      ]
     },
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
       "cache": true
     },
     "typecheck": {
+      "cache": true
+    },
+    "lint": {
       "cache": true
     }
   },
@@ -32,10 +48,19 @@
           "watchDepsName": "watch-deps"
         }
       }
+    },
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
     }
   ],
   "release": {
-    "projects": ["packages/*", "!@babylonlabs-io/babylon-proto-ts"],
+    "projects": [
+      "packages/*",
+      "!@babylonlabs-io/babylon-proto-ts"
+    ],
     "projectsRelationship": "independent",
     "releaseTagPattern": "{projectName}/{version}",
     "changelog": {

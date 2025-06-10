@@ -1,0 +1,19 @@
+{
+  "extends": ["../../.eslintrc.json"],
+  "ignorePatterns": ["!**/*"],
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx", "*.js", "*.jsx"],
+      "rules": {
+        "@nx/dependency-checks": [
+          "error",
+          {
+            "ignoredDependencies": ["tslib"],
+            "checkMissingDependencies": true,
+            "checkVersionMismatches": true
+          }
+        ]
+      }
+    }
+  ]
+}
