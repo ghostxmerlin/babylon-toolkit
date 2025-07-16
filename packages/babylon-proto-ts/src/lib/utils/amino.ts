@@ -1,9 +1,12 @@
 import { AminoTypes } from "@cosmjs/stargate";
+import { MsgWithdrawDelegatorReward } from "cosmjs-types/cosmos/distribution/v1beta1/tx";
 
 import { REGISTRY_TYPE_URLS } from "../../constants";
 import * as btcstakingtx from "../../generated/babylon/btcstaking/v1/tx";
+import * as epochingtx from "../../generated/babylon/epoching/v1/tx";
 import * as incentivetx from "../../generated/babylon/incentive/tx";
 
+// BTC Staking
 const msgCreateBTCDelegationConverter = {
   [REGISTRY_TYPE_URLS.MsgCreateBTCDelegation]: {
     aminoType: REGISTRY_TYPE_URLS.MsgCreateBTCDelegation,
@@ -103,9 +106,10 @@ const msgCreateBTCDelegationConverter = {
   },
 };
 
-const msgWithdrawRewardConverter = {
-  [REGISTRY_TYPE_URLS.MsgWithdrawReward]: {
-    aminoType: REGISTRY_TYPE_URLS.MsgWithdrawReward,
+// Incentives - Withdrawing BABY rewards from BTC Staking
+const msgWithdrawRewardForBTCStakingConverter = {
+  [REGISTRY_TYPE_URLS.MsgWithdrawRewardForBTCStaking]: {
+    aminoType: REGISTRY_TYPE_URLS.MsgWithdrawRewardForBTCStaking,
     toAmino: (msg: incentivetx.MsgWithdrawReward) => {
       return {
         type: msg.type,
@@ -121,9 +125,81 @@ const msgWithdrawRewardConverter = {
   },
 };
 
+// Epoching - Staking BABY
+const msgStakeBABYConverter = {
+  [REGISTRY_TYPE_URLS.MsgStakeBABY]: {
+    aminoType: REGISTRY_TYPE_URLS.MsgStakeBABY,
+    toAmino: (msg: epochingtx.MsgWrappedDelegate) => {
+      return {
+        msg: {
+          delegator_address: msg.msg?.delegatorAddress,
+          validator_address: msg.msg?.validatorAddress,
+          amount: msg.msg?.amount,
+        },
+      };
+    },
+    fromAmino: (json: any): epochingtx.MsgWrappedDelegate => {
+      return {
+        msg: {
+          delegatorAddress: json.msg.delegator_address,
+          validatorAddress: json.msg.validator_address,
+          amount: json.msg.amount,
+        },
+      };
+    },
+  },
+};
+
+// Epoching - Unstaking BABY
+const msgUnstakeBABYConverter = {
+  [REGISTRY_TYPE_URLS.MsgUnstakeBABY]: {
+    aminoType: REGISTRY_TYPE_URLS.MsgUnstakeBABY,
+    toAmino: (msg: epochingtx.MsgWrappedUndelegate) => {
+      return {
+        msg: {
+          delegator_address: msg.msg?.delegatorAddress,
+          validator_address: msg.msg?.validatorAddress,
+          amount: msg.msg?.amount,
+        },
+      };
+    },
+    fromAmino: (json: any): epochingtx.MsgWrappedUndelegate => {
+      return {
+        msg: {
+          delegatorAddress: json.msg.delegator_address,
+          validatorAddress: json.msg.validator_address,
+          amount: json.msg.amount,
+        },
+      };
+    },
+  },
+};
+
+// Cosmos Distribution - Withdrawing BABY rewards from BABY Staking
+const msgWithdrawRewardForBABYStakingConverter = {
+  [REGISTRY_TYPE_URLS.MsgWithdrawRewardForBABYStaking]: {
+    aminoType: REGISTRY_TYPE_URLS.MsgWithdrawRewardForBABYStaking,
+    toAmino: (msg: MsgWithdrawDelegatorReward) => {
+      return {
+        delegator_address: msg.delegatorAddress,
+        validator_address: msg.validatorAddress,
+      };
+    },
+    fromAmino: (json: any): MsgWithdrawDelegatorReward => {
+      return {
+        delegatorAddress: json.delegator_address,
+        validatorAddress: json.validator_address,
+      };
+    },
+  },
+};
+
 export const aminoConverters = {
   ...msgCreateBTCDelegationConverter,
-  ...msgWithdrawRewardConverter,
+  ...msgWithdrawRewardForBTCStakingConverter,
+  ...msgStakeBABYConverter,
+  ...msgUnstakeBABYConverter,
+  ...msgWithdrawRewardForBABYStakingConverter,
 };
 
 export const createAminoTypes = (): AminoTypes => {
