@@ -10,14 +10,14 @@ export function ActivityCardActionSection({
   actions,
 }: ActivityCardActionSectionProps) {
   return (
-    <div className="mt-4 sm:mt-6 space-y-2">
+    <div className="mt-4 sm:mt-6 flex gap-2">
       {actions.map((action, index) => (
         <Button
-          key={index}
+          key={`${action.label}-${index}`}
           variant={action.variant || "outlined"}
-          size={action.size || "small"}
-          className={`sm:bbn-btn-medium ${action.fullWidth ? "w-full" : ""} ${action.className || ""}`}
+          className={`sm:bbn-btn-medium flex-1 ${action.className || ""}`}
           onClick={action.onClick}
+          fluid
         >
           {action.label}
         </Button>

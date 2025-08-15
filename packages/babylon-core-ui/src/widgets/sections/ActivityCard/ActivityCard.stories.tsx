@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
 import { ActivityCard } from "./ActivityCard";
+import { WarningIcon } from "../../../components/Icons";
 
 const meta: Meta<typeof ActivityCard> = {
     component: ActivityCard,
@@ -15,6 +16,9 @@ export const Basic: Story = {
     args: {
         data: {
             formattedAmount: "1.5 BTC",
+            chainName: "Babylon Labs",
+            chainIcon: "https://placehold.co/32x32?text=B",
+            chainIconAlt: "Babylon Labs",
             details: [
                 { label: "Status", value: "Confirmed" },
                 { label: "Date", value: "Mar 15, 2024" },
@@ -30,6 +34,9 @@ export const WithIcon: Story = {
             formattedAmount: "2.3 BTC",
             icon: "/images/fps/lombard.jpeg",
             iconAlt: "Lombard Protocol",
+            chainName: "Babylon Labs",
+            chainIcon: "https://placehold.co/32x32?text=B",
+            chainIconAlt: "Babylon Labs",
             details: [
                 { label: "Status", value: "Pending" },
                 { label: "Date", value: "Mar 16, 2024" },
@@ -45,13 +52,24 @@ export const WithPrimaryAction: Story = {
             formattedAmount: "0.75 BTC",
             icon: "/images/fps/pumpbtc.jpeg",
             iconAlt: "PumpBTC",
+            chainName: "Babylon Labs",
+            chainIcon: "https://placehold.co/32x32?text=B",
+            chainIconAlt: "Babylon Labs",
             details: [
-                { label: "Status", value: "Pending" },
-                { label: "Date", value: "Mar 16, 2024" },
-                { label: "Confirmations", value: "2/6" },
+                { label: "Commission", value: "1%" },
+                { label: "Inception", value: "Mar 16, 2024" },
+                {
+                    label: "Pending",
+                    value: "7 BABY",
+                    collapsible: true,
+                    nestedDetails: [
+                        { label: "Pending Stake", value: "10 BABY" },
+                        { label: "Pending Unbonding", value: "3 BABY" },
+                    ]
+                },
             ],
             primaryAction: {
-                label: "View Details",
+                label: "Unbond",
                 onClick: () => alert("Primary action clicked"),
                 variant: "contained",
             },
@@ -65,6 +83,9 @@ export const WithSecondaryActions: Story = {
             formattedAmount: "5.0 BTC",
             icon: "/images/fps/solv.jpeg",
             iconAlt: "Solv Protocol",
+            chainName: "Babylon Labs",
+            chainIcon: "https://placehold.co/32x32?text=B",
+            chainIconAlt: "Babylon Labs",
             details: [
                 { label: "Status", value: "Completed" },
                 { label: "Date", value: "Mar 14, 2024" },
@@ -94,6 +115,9 @@ export const WithOptionalDetails: Story = {
             formattedAmount: "3.2 BTC",
             icon: "/images/wallets/keystone.svg",
             iconAlt: "Keystone Wallet",
+            chainName: "Babylon Labs",
+            chainIcon: "https://placehold.co/32x32?text=B",
+            chainIconAlt: "Babylon Labs",
             details: [
                 { label: "Status", value: "Confirmed" },
                 { label: "Date", value: "Mar 15, 2024" },
@@ -113,6 +137,9 @@ export const WithListItems: Story = {
             formattedAmount: "10.5 BTC",
             icon: "/images/wallets/binance.webp",
             iconAlt: "Binance Wallet",
+            chainName: "Babylon Labs",
+            chainIcon: "https://placehold.co/32x32?text=B",
+            chainIconAlt: "Babylon Labs",
             details: [
                 { label: "Status", value: "Completed" },
                 { label: "Date", value: "Mar 13, 2024" },
@@ -144,6 +171,9 @@ export const Complete: Story = {
             formattedAmount: "7.8 BTC",
             icon: "/images/fps/lombard.jpeg",
             iconAlt: "Lombard Protocol",
+            chainName: "Babylon Labs",
+            chainIcon: "https://placehold.co/32x32?text=B",
+            chainIconAlt: "Babylon Labs",
             details: [
                 { label: "Status", value: "Confirmed" },
                 { label: "Date", value: "Mar 12, 2024" },
@@ -199,6 +229,9 @@ export const LargeAmount: Story = {
             formattedAmount: "1,234.56789 BTC",
             icon: "/images/fps/pumpbtc.jpeg",
             iconAlt: "PumpBTC",
+            chainName: "Babylon Labs",
+            chainIcon: "https://placehold.co/32x32?text=B",
+            chainIconAlt: "Babylon Labs",
             details: [
                 { label: "Status", value: "High Value Transaction" },
                 { label: "Date", value: "Mar 16, 2024" },
@@ -217,8 +250,11 @@ export const ErrorState: Story = {
     args: {
         data: {
             formattedAmount: "0.5 BTC",
-            icon: "/images/status/warning.svg",
+            icon: <WarningIcon size={32} variant="error" />,
             iconAlt: "Warning",
+            chainName: "Babylon Labs",
+            chainIcon: "https://placehold.co/32x32?text=B",
+            chainIconAlt: "Babylon Labs",
             details: [
                 { label: "Status", value: "Failed" },
                 { label: "Date", value: "Mar 16, 2024" },
@@ -226,15 +262,15 @@ export const ErrorState: Story = {
             ],
             secondaryActions: [
                 {
-                    label: "Retry",
-                    onClick: () => alert("Retry clicked"),
-                    variant: "contained",
-                    size: "small",
-                },
-                {
                     label: "Cancel",
                     onClick: () => alert("Cancel clicked"),
                     variant: "outlined",
+                    size: "small",
+                },
+                {
+                    label: "Retry",
+                    onClick: () => alert("Retry clicked"),
+                    variant: "contained",
                     size: "small",
                 },
             ],
