@@ -25,6 +25,7 @@ interface Props {
   min?: string;
   step?: string;
   autoFocus?: boolean;
+  decimals?: number; // Enforce decimals
 }
 
 export const AmountSubsection = ({
@@ -38,6 +39,7 @@ export const AmountSubsection = ({
   min = "0",
   step = "any",
   autoFocus = true,
+  decimals,
 }: Props) => {
   const amount = useWatch({ name: fieldName, defaultValue: "" });
   const { setValue } = useFormContext();
@@ -48,7 +50,26 @@ export const AmountSubsection = ({
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(fieldName, e.target.value, {
+    let value = e.target.value;
+    
+    // If decimals is specified, validate and restrict input
+    if (decimals !== undefined && decimals >= 0) {
+      // Handle multiple decimal points by taking only the first one
+      const [integer, decimal] = value.split('.', 2);
+      
+      if (decimal !== undefined && decimal.length > decimals) {
+        // Truncate decimal part to specified length
+        value = integer + '.' + decimal.slice(0, decimals);
+      } else if (decimal !== undefined) {
+        // Ensure we only have one decimal point
+        value = integer + '.' + decimal;
+      } else if (value.includes('.')) {
+        // Handle case where there are multiple dots but no decimal part
+        value = integer;
+      }
+    }
+    
+    setValue(fieldName, value, {
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
@@ -68,7 +89,6 @@ export const AmountSubsection = ({
       subtitle = `${prefix}: ${subtitle}`;
     }
   }
-
   return (
     <>
       <HiddenField name={fieldName} defaultValue="" />
