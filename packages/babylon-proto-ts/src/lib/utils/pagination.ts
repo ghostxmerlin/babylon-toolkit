@@ -78,8 +78,13 @@ export async function fetchAllPages<T>(
     if (data && Array.isArray(data)) {
       allData.push(...data);
     }
-    
-    nextKey = response.pagination?.nextKey || null;
+
+    const newNextKey = response.pagination?.nextKey;
+    nextKey = newNextKey && newNextKey !== '' ? newNextKey : null;
+
+    if (data && data.length === 0 && nextKey === null) {  
+      break;
+    } 
   } while (nextKey !== null);
   
   return allData;
