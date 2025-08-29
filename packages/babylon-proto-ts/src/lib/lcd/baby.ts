@@ -100,20 +100,36 @@ const createBabylonClient = ({ request }: Dependencies) => ({
     }
   },
 
-  async getValidatorSet(epoch: number): Promise<{
-    addr: string;
-    power: string;
-  }[]> {
+  async getSigningInfos(): Promise<{ address: string; tombstoned: boolean }[]> {
     try {
-      return await fetchAllPages(
+      const infos = await fetchAllPages<any>(
         request,
-        `/babylon/epoching/v1/epochs/${epoch}/validator_set`,
-        "validators",
+        "/cosmos/slashing/v1beta1/signing_infos",
+        "info",
+        { limit: 200 },
       );
+      return infos.map((i: any) => ({
+        address: i.address,
+        tombstoned: Boolean(i.tombstoned),
+      }));
     } catch (error: unknown) {
-      throw new Error(`Failed to fetch validator set for epoch ${epoch}`, {
-        cause: error,
-      });
+      throw new Error("Failed to fetch signing infos", { cause: error });
+    }
+  },
+
+  async getLatestValidatorSet(): Promise<
+    { address: string; pubKey?: { key?: string } }[]
+  > {
+    try {
+      const validators = await fetchAllPages<any>(
+        request,
+        "/cosmos/base/tendermint/v1beta1/validatorsets/latest",
+        "validators",
+        { limit: 200 },
+      );
+      return validators as { address: string; pubKey?: { key?: string } }[];
+    } catch (error: unknown) {
+      throw new Error("Failed to fetch latest validator set", { cause: error });
     }
   },
 });
