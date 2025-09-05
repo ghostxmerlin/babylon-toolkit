@@ -9,11 +9,13 @@ import { ThemedIcon } from "../../../components/Icons/ThemedIcon";
 import { useCopy } from "../../../hooks/useCopy";
 import { twJoin } from "tailwind-merge";
 
+export type WalletChain = "BTC" | "BBN";
+
 export interface WalletMenuProps {
   trigger: React.ReactNode;
   btcAddress: string;
   bbnAddress: string;
-  selectedWallets: Record<string, { name: string; icon: string }>;
+  selectedWallets: Record<WalletChain, { name: string; icon: string }>;
   ordinalsExcluded: boolean;
   linkedDelegationsVisibility: boolean;
   onIncludeOrdinals: () => void;
@@ -104,19 +106,21 @@ export const WalletMenu: React.FC<WalletMenuProps> = ({
     >
       <div className="p-4 space-y-6 w-full text-primary-main">
         <div className="flex flex-row gap-2 w-full md:flex-col">
-          <WalletMenuCard
-            walletType="Bitcoin"
-            walletName={selectedWallets["BTC"]?.name}
-            walletIcon={selectedWallets["BTC"]?.icon}
-            address={btcAddress}
-            isCopied={isCopied("btc")}
-            onCopy={() => copyToClipboard("btc", btcAddress)}
-            balances={btcBalances}
-            coinSymbol={btcSymbol}
-            isBalanceLoading={balancesLoading}
-            hasUnconfirmedTransactions={hasUnconfirmedTransactions}
-            formatBalance={createFormatBalance(btcSymbol)}
-          />
+          {btcAddress && (
+            <WalletMenuCard
+              walletType="Bitcoin"
+              walletName={selectedWallets["BTC"]?.name}
+              walletIcon={selectedWallets["BTC"]?.icon}
+              address={btcAddress}
+              isCopied={isCopied("btc")}
+              onCopy={() => copyToClipboard("btc", btcAddress)}
+              balances={btcBalances}
+              coinSymbol={btcSymbol}
+              isBalanceLoading={balancesLoading}
+              hasUnconfirmedTransactions={hasUnconfirmedTransactions}
+              formatBalance={createFormatBalance(btcSymbol)}
+            />
+          )}
 
           <WalletMenuCard
             walletType="Babylon"
