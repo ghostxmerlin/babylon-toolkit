@@ -1,50 +1,34 @@
-import { Dialog, MobileDialog, DialogBody, DialogHeader } from "@/components/Dialog";
+import { Dialog, MobileDialog, DialogBody, DialogHeader, DialogFooter } from "@/components/Dialog";
 import { Table } from "@/components/Table";
 import { Input } from "@/components/Form/Input";
 import { Text } from "@/components/Text";
-import type { ColumnProps } from "@/components/Table/types";
-import { WINDOW_BREAKPOINT, MAX_WINDOW_HEIGHT } from "../../../utils/constants";
+import { WINDOW_BREAKPOINT } from "../../../utils/constants";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { ReactNode, PropsWithChildren, useState, useMemo } from "react";
+import { PropsWithChildren, useState, useMemo, memo } from "react";
 import { twMerge } from "tailwind-merge";
 import { MdCancel } from "react-icons/md";
 import { RiSearchLine } from "react-icons/ri";
+import { TableElement } from "@/widgets/sections/TableElement";
+import { Button, IconButton } from "@/components/Button";
+import { MdTableRows } from "react-icons/md";
+import { IoGridSharp } from "react-icons/io5";
+import { useControlledState } from "@/hooks/useControlledState";
+import { Select } from "@/components/Form";
+import type { ValidatorSelectorProps, HeaderControlsProps, GridViewProps, ListViewProps, ConfirmFooterProps, ResponsiveDialogProps, ValidatorRow } from "./ValidatorSelector.types";
 
-// Types for table rows representing validators
-export interface ValidatorRow {
-    id: string | number;
-    icon?: ReactNode;
-    name: string;
-    apr: string;
-    votingPower: string;
-    commission: string;
-}
-
-interface ValidatorSelectorProps {
-    open: boolean;
-    validators: ValidatorRow[];
-    /** Column configuration for the table */
-    columns: ColumnProps<ValidatorRow>[];
-    onClose: () => void;
-    /** Called when the user confirms selection. Provides selected validator row. */
-    onSelect: (validator: ValidatorRow) => void;
-    /** Optional title for the dialog – defaults to "Select Validator" */
-    title?: string;
-    /** Optional description text to display above the search input */
-    description?: string;
-}
-
-type DialogComponentProps = Parameters<typeof Dialog>[0];
-
-interface ResponsiveDialogProps extends DialogComponentProps {
-    children?: ReactNode;
-}
+export type { ValidatorRow } from "./ValidatorSelector.types";
 
 function ResponsiveDialog({ className, ...restProps }: ResponsiveDialogProps) {
     const isMobileView = useIsMobile(WINDOW_BREAKPOINT);
     const DialogComponent = isMobileView ? MobileDialog : Dialog;
 
-    return <DialogComponent {...restProps} className={twMerge("w-[41.25rem] max-w-full", className)} />;
+    return (
+        <DialogComponent
+            {...restProps}
+            {...(!isMobileView ? { dialogClassName: "h-[90vh] min-h-[400px] max-h-[720px] flex flex-col" } : {})}
+            className={twMerge("w-[41.25rem] max-w-full", className)}
+        />
+    );
 }
 
 export const ValidatorSelector = ({
@@ -55,13 +39,110 @@ export const ValidatorSelector = ({
     onSelect,
     title = "",
     description,
+    confirmSelection = false,
+    onBack,
+    onAdd,
+    layout,
+    defaultLayout = "list",
+    onLayoutChange,
+    isRowSelectable,
+    gridItemMapper,
+    filters,
 }: PropsWithChildren<ValidatorSelectorProps>) => {
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedId, setSelectedId] = useState<string | number | null>(null);
+    const [currentLayout, setCurrentLayout] = useControlledState<"grid" | "list">({
+        value: layout,
+        defaultValue: defaultLayout,
+        onStateChange: onLayoutChange,
+    });
 
     const onClearSearch = () => {
         setSearchTerm("");
     };
 
+    const headerControls = (
+        <HeaderControls
+            searchTerm={searchTerm}
+            onClearSearch={onClearSearch}
+            onSearchChange={setSearchTerm}
+            filters={filters}
+            gridItemMapper={gridItemMapper}
+            currentLayout={currentLayout ?? "list"}
+            onToggleLayout={() => setCurrentLayout(currentLayout === "grid" ? "list" : "grid")}
+        />
+    );
+
+    const filteredValidators = useMemo(() => {
+        if (!searchTerm.trim()) return validators;
+
+        return validators.filter((validator) =>
+            validator.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [validators, searchTerm]);
+
+    const selectedRow = useMemo(
+        () => filteredValidators.find((v) => v.id === selectedId) || null,
+        [filteredValidators, selectedId]
+    );
+
+    return (
+        <ResponsiveDialog open={open} onClose={onClose} className="w-[52rem]">
+            <DialogHeader title={title} onClose={onClose} className="text-accent-primary" />
+            {description && (
+                <div className="mt-4">
+                    <Text className="text-accent-secondary">
+                        {description}
+                    </Text>
+                </div>
+            )}
+            {headerControls}
+            <DialogBody className="mt-4 flex flex-col" style={{ overflowY: "hidden" }}>
+                <GridView
+                    rows={filteredValidators}
+                    currentLayout={currentLayout ?? "list"}
+                    gridItemMapper={gridItemMapper}
+                    isRowSelectable={isRowSelectable}
+                    selectedId={selectedId}
+                    onSelectRowId={setSelectedId}
+                    confirmSelection={confirmSelection}
+                    onSelect={onSelect}
+                    onClose={onClose}
+                />
+                <ListView
+                    rows={filteredValidators}
+                    currentLayout={currentLayout ?? "list"}
+                    gridItemMapper={gridItemMapper}
+                    columns={columns}
+                    selectedId={selectedId}
+                    onSelectRowId={setSelectedId}
+                    confirmSelection={confirmSelection}
+                    onSelect={onSelect}
+                    onClose={onClose}
+                    isRowSelectable={isRowSelectable}
+                />
+            </DialogBody>
+            <ConfirmFooter
+                confirmSelection={confirmSelection}
+                onBack={onBack}
+                selectedRow={selectedRow}
+                onAdd={onAdd}
+                onClose={onClose}
+                clearSelection={() => setSelectedId(null)}
+            />
+        </ResponsiveDialog>
+    );
+};
+
+const HeaderControls = memo(({
+    searchTerm,
+    onClearSearch,
+    onSearchChange,
+    filters,
+    gridItemMapper,
+    currentLayout,
+    onToggleLayout,
+}: HeaderControlsProps) => {
     const searchPrefix = searchTerm ? (
         <button
             onClick={onClearSearch}
@@ -75,50 +156,138 @@ export const ValidatorSelector = ({
         </span>
     );
 
-    const filteredValidators = useMemo(() => {
-        if (!searchTerm.trim()) return validators;
-
-        return validators.filter((validator) =>
-            validator.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [validators, searchTerm]);
-
     return (
-        <ResponsiveDialog open={open} onClose={onClose}>
-            <DialogHeader title={title} onClose={onClose} className="text-accent-primary" />
-            <DialogBody
-                style={{ maxHeight: MAX_WINDOW_HEIGHT }}
-                className="no-scrollbar mt-4 flex flex-col gap-6 overflow-y-auto text-accent-primary"
-            >
-                {description && (
-                    <div>
-                        <Text variant="body2" className="text-accent-secondary">
-                            {description}
-                        </Text>
-                    </div>
-                )}
-                <div>
-                    <Input
-                        placeholder="Search"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        prefix={searchPrefix}
-                        className="w-full"
+        <div className="mt-4 flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+                <Input
+                    placeholder="Search"
+                    wrapperClassName="h-full"
+                    id='validator-selector-search'
+                    value={searchTerm}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    prefix={searchPrefix}
+                    className="w-full"
+                />
+            </div>
+            {filters?.slot ? (
+                <div className="w-full md:w-[200px]">{filters.slot}</div>
+            ) : filters?.options && filters.options.length > 0 ? (
+                <div className="w-full md:w-[200px]">
+                    <Select
+                        options={filters.options}
+                        onSelect={(value) => filters?.onSelect?.(value)}
+                        placeholder={filters.placeholder ?? "Select Status"}
+                        value={searchTerm ? "" : filters.value}
+                        disabled={Boolean(searchTerm) || filters.disabled}
+                        renderSelectedOption={filters.renderSelectedOption}
+                        className={twMerge("h-10", filters.className)}
                     />
                 </div>
-                <Table<ValidatorRow>
-                    data={filteredValidators}
-                    columns={columns}
-                    className="w-full"
-                    wrapperClassName="w-full"
-                    onRowSelect={(row) => {
-                        if (row) {
-                            onSelect(row);
-                            onClose();
-                        }
-                    }}
-                />
-            </DialogBody>
-        </ResponsiveDialog>
+            ) : null}
+            {gridItemMapper ? (
+                <div className="flex items-center gap-2 text-secondary-strokeDark/50">
+                    <IconButton onClick={onToggleLayout}>
+                        <div className="text-accent-primary">
+                            {currentLayout === "grid" ? (
+                                <MdTableRows size={24} />
+                            ) : (
+                                <IoGridSharp size={20} />
+                            )}
+                        </div>
+                    </IconButton>
+                </div>
+            ) : null}
+        </div>
     );
-}; 
+});
+
+
+const GridView = memo(({ rows, currentLayout, gridItemMapper, isRowSelectable, selectedId, onSelectRowId, confirmSelection, onSelect, onClose }: GridViewProps) => {
+    if (!(currentLayout === "grid" && gridItemMapper)) return null;
+
+    return (
+        <div className="grid grid-cols-2 gap-4 w-full flex-1 min-h-0 overflow-auto">
+            {rows.map((row, index) => {
+                const mapped = gridItemMapper(row, index);
+                const selectable = isRowSelectable ? isRowSelectable(row) : true;
+                return (
+                    <TableElement
+                        key={row.id}
+                        providerItemProps={mapped.providerItemProps}
+                        attributes={mapped.attributes}
+                        isSelected={selectedId === row.id}
+                        isSelectable={selectable}
+                        onSelect={() => {
+                            if (!selectable) return;
+                            if (confirmSelection) {
+                                onSelectRowId(row.id);
+                            } else {
+                                onSelect(row);
+                                onClose();
+                            }
+                        }}
+                    />
+                );
+            })}
+        </div>
+    );
+});
+
+const ListView = memo(({ rows, currentLayout, gridItemMapper, columns, selectedId, onSelectRowId, confirmSelection, onSelect, onClose, isRowSelectable }: ListViewProps) => {
+    if (currentLayout === "grid" && gridItemMapper) return null;
+
+    return (
+        <Table<ValidatorRow>
+            data={rows}
+            columns={columns}
+            className="w-full"
+            wrapperClassName="w-full flex-1 min-h-0 overflow-auto"
+            fluid
+            selectedRow={selectedId ?? undefined}
+            onSelectedRowChange={(rowId) => onSelectRowId(rowId)}
+            onRowSelect={(row) => {
+                if (!row) {
+                    onSelectRowId(null);
+                    return;
+                }
+                if (confirmSelection) {
+                    onSelectRowId(row.id);
+                } else {
+                    onSelect(row);
+                    onClose();
+                }
+            }}
+            isRowSelectable={isRowSelectable}
+        />
+    );
+});
+
+
+const ConfirmFooter = memo(({ confirmSelection, onBack, selectedRow, onAdd, onClose, clearSelection }: ConfirmFooterProps) => {
+    if (!confirmSelection) return null;
+
+    return (
+        <DialogFooter className="flex mt-4 justify-between">
+            {onBack ? (
+                <Button variant="outlined" onClick={onBack}>
+                    Back
+                </Button>
+            ) : (
+                <div />
+            )}
+            <Button
+                variant="contained"
+                onClick={() => {
+                    if (selectedRow && onAdd) {
+                        onAdd(selectedRow);
+                        clearSelection();
+                        onClose();
+                    }
+                }}
+                disabled={!selectedRow}
+            >
+                Add
+            </Button>
+        </DialogFooter>
+    );
+});
