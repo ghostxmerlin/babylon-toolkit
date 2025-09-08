@@ -8,8 +8,7 @@ import { useState } from "react";
 
 import { ResponsiveDialog } from "@/ui/common/components/Modals/ResponsiveDialog";
 import { FinalityProviders } from "@/ui/common/components/Multistaking/FinalityProviderField/FinalityProviders";
-
-import { UnavailableWarning } from "../MultistakingForm/UnavailableWarning";
+import { useFinalityProviderBsnState } from "@/ui/common/state/FinalityProviderBsnState";
 
 interface Props {
   open: boolean;
@@ -29,6 +28,7 @@ export const FinalityProviderModal = ({
   onBack,
 }: Props) => {
   const [selectedFP, setSelectedFp] = useState(defaultFinalityProvider);
+  const { modalTitle } = useFinalityProviderBsnState();
 
   const handleClose = () => {
     onClose();
@@ -38,7 +38,7 @@ export const FinalityProviderModal = ({
   return (
     <ResponsiveDialog open={open} onClose={handleClose} className="w-[52rem]">
       <DialogHeader
-        title="Select Finality Provider"
+        title={modalTitle}
         onClose={handleClose}
         className="text-accent-primary"
       />
@@ -49,7 +49,7 @@ export const FinalityProviderModal = ({
           by validating and finalising transactions. Select one to delegate your
           stake.
         </div>
-        <UnavailableWarning />
+
         <div
           className="flex flex-col gap-2 overflow-x-auto"
           style={{ maxHeight: "min(60vh, 500px)" }}

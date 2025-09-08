@@ -9,6 +9,10 @@ interface ActivityCardDetailsSectionProps {
     label: string;
     items: ActivityListItemData[];
   }[];
+  groupedDetails?: {
+    label?: string;
+    items: ActivityCardDetailItem[];
+  }[];
 }
 
 interface DetailRowProps {
@@ -18,11 +22,11 @@ interface DetailRowProps {
 
 function DetailRow({ label, value }: DetailRowProps) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-2 overflow-x-auto">
+    <div className="flex min-w-0 items-center justify-between gap-2">
       <span className="flex-shrink-0 text-xs text-accent-primary sm:text-sm">
         {label}
       </span>
-      <span className="min-w-0 overflow-x-auto whitespace-nowrap text-right text-xs font-medium text-accent-primary sm:text-sm">
+      <span className="min-w-0 overflow-hidden truncate text-ellipsis text-right text-xs font-medium text-accent-primary sm:text-sm">
         {value}
       </span>
     </div>
@@ -33,9 +37,11 @@ export function ActivityCardDetailsSection({
   details,
   optionalDetails,
   listItems,
+  groupedDetails,
 }: ActivityCardDetailsSectionProps) {
   const hasOptionalDetails = optionalDetails && optionalDetails.length > 0;
   const hasListItems = listItems && listItems.length > 0;
+  const hasGroupedDetails = groupedDetails && groupedDetails.length > 0;
 
   return (
     <div className="space-y-3 overflow-x-auto sm:space-y-4">
@@ -44,6 +50,30 @@ export function ActivityCardDetailsSection({
           <DetailRow key={index} label={detail.label} value={detail.value} />
         ))}
       </div>
+
+      {hasGroupedDetails && (
+        <div className="space-y-3 sm:space-y-4">
+          {groupedDetails.map((group, groupIndex) => (
+            <div
+              key={groupIndex}
+              className="space-y-3 overflow-x-auto rounded bg-surface p-3 sm:space-y-4 sm:p-4"
+            >
+              {group.label && (
+                <span className="text-xs text-accent-primary sm:text-sm">
+                  {group.label}
+                </span>
+              )}
+              {group.items.map((detail, detailIndex) => (
+                <DetailRow
+                  key={detailIndex}
+                  label={detail.label}
+                  value={detail.value}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
 
       {hasListItems && (
         <div className="space-y-3 sm:space-y-4">

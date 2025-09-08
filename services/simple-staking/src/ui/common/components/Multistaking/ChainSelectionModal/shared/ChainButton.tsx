@@ -1,6 +1,8 @@
 import { Button, FinalityProviderItem } from "@babylonlabs-io/core-ui";
 import { twMerge } from "tailwind-merge";
 
+import { ThreeDotsMenu } from "@/ui/common/components/ThreeDotsMenu/ThreeDotsMenu";
+
 import { ChainButtonProps } from "./types";
 
 export const ChainButton = ({
@@ -16,9 +18,7 @@ export const ChainButton = ({
 }: ChainButtonProps) => (
   <div
     className={twMerge(
-      provider
-        ? "w-full rounded bg-secondary-highlight px-[14px] py-[14px]"
-        : "flex w-full items-center justify-between rounded bg-secondary-highlight px-[14px] py-[14px]",
+      "flex w-full items-center justify-between rounded bg-secondary-highlight px-[14px] py-[14px]",
       disabled ? "opacity-50" : "",
     )}
   >
@@ -45,7 +45,29 @@ export const ChainButton = ({
         </>
       )}
     </div>
-    {!provider && (
+    {provider ? (
+      <ThreeDotsMenu
+        onChange={() => {
+          if (bsnId) {
+            onRemove?.(bsnId);
+          }
+          onSelectFp?.();
+        }}
+        onRemove={() => onRemove?.(bsnId || "")}
+        className="rounded p-1 hover:bg-secondary-highlight"
+      />
+    ) : isExisting ? (
+      <ThreeDotsMenu
+        onChange={() => {
+          if (bsnId) {
+            onRemove?.(bsnId);
+          }
+          onSelectFp?.();
+        }}
+        onRemove={() => onRemove?.(bsnId || "")}
+        className="rounded p-1 hover:bg-secondary-highlight"
+      />
+    ) : (
       <Button
         variant="outlined"
         disabled={disabled}
