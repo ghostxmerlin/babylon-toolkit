@@ -3,6 +3,7 @@ import {
   AvatarGroup,
   Button,
   WalletMenu,
+  Hint,
 } from "@babylonlabs-io/core-ui";
 import {
   useWalletConnect,
@@ -12,7 +13,6 @@ import { useMemo, useState } from "react";
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import { PiWalletBold } from "react-icons/pi";
 import { useLocation } from "react-router";
-import { Tooltip } from "react-tooltip";
 import { twMerge } from "tailwind-merge";
 
 import { getNetworkConfigBBN } from "@/ui/common/config/network/bbn";
@@ -110,7 +110,8 @@ export const Connect: React.FC<ConnectProps> = ({
   const {
     isApiNormal,
     isGeoBlocked,
-    apiMessage,
+    isError: isHealthcheckError,
+    error: healthCheckError,
     isLoading: isHealthcheckLoading,
   } = useHealthCheck();
 
@@ -145,22 +146,33 @@ export const Connect: React.FC<ConnectProps> = ({
   }, [selectedWallets]);
 
   const renderApiNotAvailableTooltip = useMemo(() => {
-    if (!isGeoBlocked && isApiNormal) return null;
+    if (
+      !isGeoBlocked &&
+      isApiNormal &&
+      !isHealthcheckError &&
+      !healthCheckError?.message
+    ) {
+      return null;
+    }
 
     return (
       <>
-        <span
-          className="cursor-pointer text-xs"
-          data-tooltip-id="tooltip-connect"
-          data-tooltip-content={apiMessage}
-          data-tooltip-place="bottom"
+        <Hint
+          className="cursor-pointer"
+          tooltip={healthCheckError?.message}
+          placement="left"
+          attachToChildren={true}
         >
           <AiOutlineInfoCircle />
-        </span>
-        <Tooltip id="tooltip-connect" className="tooltip-wrap" />
+        </Hint>
       </>
     );
-  }, [isGeoBlocked, isApiNormal, apiMessage]);
+  }, [
+    isGeoBlocked,
+    isApiNormal,
+    isHealthcheckError,
+    healthCheckError?.message,
+  ]);
 
   // DISCONNECTED STATE: Show connect button + settings menu
   if (!isConnected) {
