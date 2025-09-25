@@ -12,7 +12,7 @@ export const BBN_DEVNET_LCD_URL = getUrlFromEnv(
   "https://lcd.canon-devnet.babylonlabs.io",
 );
 
-export const bbnDevnet = {
+export const bbnCanonDevnet = {
   chainId: "devnet-12",
   chainName: "Babylon Devnet 12",
   chainSymbolImageUrl:
