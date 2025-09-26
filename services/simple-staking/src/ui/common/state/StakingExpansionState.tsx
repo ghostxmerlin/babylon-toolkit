@@ -21,7 +21,6 @@ import type {
 import { createStateUtils } from "@/ui/common/utils/createStateUtils";
 import { getExpansionsLocalStorageKey } from "@/ui/common/utils/local_storage/getExpansionsLocalStorageKey";
 import FeatureFlags from "@/ui/common/utils/FeatureFlagService";
-import { network as bbnNetwork } from "@/ui/common/config/network/bbn";
 
 import {
   StakingExpansionStep,
@@ -122,8 +121,7 @@ export function StakingExpansionState({ children }: PropsWithChildren) {
   ] = useState<DelegationWithFP | null>(null);
 
   const expansionDisabled = useMemo(() => {
-    // Disable expansion on testnet when sunsetting flag is enabled
-    if (FeatureFlags.IsTestnetSunsetEnabled && bbnNetwork === "testnet") {
+    if (FeatureFlags.IsTestnetSunsetEnabled) {
       return true;
     }
     return failedBtcAddressRiskAssessment;
