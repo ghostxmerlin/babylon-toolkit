@@ -83,6 +83,65 @@ const createBabylonClient = ({ request }: Dependencies) => ({
     }
   },
 
+  async getIncentiveParams(): Promise<{
+    btcStakingPortion: number;
+    fpPortion: number;
+  }> {
+    const response = await request("/babylon/incentive/params");
+    const params = response?.params ?? response;
+    const btcStakingPortion = Number(params?.btcStakingPortion ?? 0);
+    const fpPortion = Number(params?.fpPortion ?? 0);
+    return {
+      btcStakingPortion: Number.isFinite(btcStakingPortion) ? btcStakingPortion : 0,
+      fpPortion: Number.isFinite(fpPortion) ? fpPortion : 0,
+    };
+  },
+
+  async getCostakingParams(): Promise<{
+    costakingPortion: number;
+    validatorsPortion: number;
+  }> {
+    const response = await request("/babylon/costaking/v1/params");
+    const params = response?.params ?? response;
+    const costakingPortion = Number(params?.costakingPortion ?? 0);
+    const validatorsPortion = Number(params?.validatorsPortion ?? 0);
+    return {
+      costakingPortion: Number.isFinite(costakingPortion) ? costakingPortion : 0,
+      validatorsPortion: Number.isFinite(validatorsPortion) ? validatorsPortion : 0,
+    };
+  },
+
+  async getAnnualProvisions(): Promise<number> {
+    try {
+      const response = await request(
+        "/cosmos/mint/v1beta1/annual_provisions",
+      );
+      const annualProvisions = response?.annualProvisions ?? response?.annual_provisions ?? response;
+      const result = Number(annualProvisions);
+      return result;
+    } catch (error) {
+      throw new Error(`Failed to fetch annual provisions`, {
+        cause: error,
+      });
+    }
+  },
+
+
+  async getSupply(denom: string = "ubbn"): Promise<bigint> {
+    try {
+      const response = await request(
+        "/cosmos/bank/v1beta1/supply/by_denom",
+        { denom },
+      );
+      const amount = response?.amount?.amount ?? 0;
+      return BigInt(amount);
+    } catch (error: any) {
+      throw new Error(`Failed to fetch supply for ${denom}`, {
+        cause: error,
+      });
+    }
+  },
+
   async getCurrentEpoch() {
     try {
       const {

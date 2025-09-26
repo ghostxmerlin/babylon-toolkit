@@ -15,6 +15,7 @@ import { Tabs } from "@/ui/common/components/Tabs";
 import { useCosmosWallet } from "@/ui/common/context/wallet/CosmosWalletProvider";
 import { useHealthCheck } from "@/ui/common/hooks/useHealthCheck";
 
+import { Stats } from "./components/Stats/Stats";
 import { BabyActivityList } from "./components/ActivityList";
 import { RewardCard } from "./components/RewardCard";
 import { RewardsPreviewModal } from "./components/RewardPreviewModal";
@@ -111,6 +112,7 @@ function BabyLayoutContent() {
       as="main"
       className="mx-auto flex max-w-[760px] flex-1 flex-col gap-[3rem] pb-0"
     >
+      <Stats />
       <Tabs items={fallbackTabItems} defaultActiveTab="stake" keepMounted />
     </Container>
   );
@@ -127,6 +129,7 @@ function BabyLayoutContent() {
                     as="main"
                     className="mx-auto flex max-w-[760px] flex-1 flex-col gap-[3rem] pb-0"
                   >
+                    <Stats />
                     <Tabs
                       items={tabItems}
                       defaultActiveTab="stake"
