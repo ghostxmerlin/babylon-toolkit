@@ -3,6 +3,7 @@ import {
   ExternalWallets,
   WalletProvider,
 } from "@babylonlabs-io/wallet-connector";
+import { WalletChain } from "@babylonlabs-io/core-ui";
 import { useTheme } from "next-themes";
 import { useCallback, type PropsWithChildren } from "react";
 import { useLocation } from "react-router";
@@ -74,9 +75,13 @@ export const WalletConnectionProvider = ({ children }: PropsWithChildren) => {
     [handleError, logger],
   );
 
-  const requiredChains = (
-    location.pathname.startsWith("/baby") ? ["BBN"] : ["BTC", "BBN"]
-  ) as ("BTC" | "BBN")[];
+  const isCosmosOnlyRoute =
+    location.pathname.startsWith("/baby") ||
+    location.pathname.startsWith("/rewards");
+
+  const requiredChains: WalletChain[] = isCosmosOnlyRoute
+    ? ["BBN"]
+    : ["BTC", "BBN"];
 
   return (
     <WalletProvider
