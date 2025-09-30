@@ -12,6 +12,10 @@ import { getPublicKeyFromXpub, toNetwork } from "@/core/utils/wallet";
 import logo from "./logo.svg";
 import { getPolicyForTransaction } from "./policy";
 
+// 🔧 简单的配置开关 - 修改这里来切换模拟器/真机
+const USE_SIMULATOR = false; // true: 使用模拟器, false: 使用真机
+const SIMULATOR_URL = "http://localhost:5000";
+
 // Simple browser-compatible Speculos transport
 class BrowserSpeculosTransport extends Transport {
   private baseURL: string;
@@ -102,19 +106,32 @@ export class LedgerProvider implements IBTCProvider {
     this.config = config;
   }
 
+  // 检查是否使用模拟器 - 直接使用配置变量
+  private isUsingSimulator(): boolean {
+    return USE_SIMULATOR;
+  }
+
+  // 获取模拟器URL - 直接使用配置变量
+  private getSimulatorURL(): string {
+    return SIMULATOR_URL;
+  }
+
   // Create a transport instance for Ledger devices
-  // It first tries to create a WebUSB transport
-  // and if that fails, it falls back to WebHID
+  // 根据环境变量选择模拟器或真机
   async createTransport(): Promise<Transport> {
-    try {
-      return await TransportWebUSB.create();
-    } catch (usbError: Error | any) {
+    if (this.isUsingSimulator()) {
+      return await openSpeculosAndWait(this.getSimulatorURL());
+    } else {
       try {
-        return await TransportWebHID.create();
-      } catch (hidError: Error | any) {
-        throw new Error(
-          `Could not connect to Ledger device: ${usbError.message || usbError}, ${hidError.message || hidError}`,
-        );
+        return await TransportWebUSB.create();
+      } catch (usbError: Error | any) {
+        try {
+          return await TransportWebHID.create();
+        } catch (hidError: Error | any) {
+          throw new Error(
+            `Could not connect to Ledger device: ${usbError.message || usbError}, ${hidError.message || hidError}`,
+          );
+        }
       }
     }
   }
@@ -133,8 +150,7 @@ export class LedgerProvider implements IBTCProvider {
   // Create a new AppClient instance using the transport
   private async createAppClient(): Promise<AppClient> {
     try {
-      // Use our browser-compatible transport
-      const transport = await openSpeculosAndWait("http://localhost:5000");
+      const transport = await this.createTransport();
       const appClient = new AppClient(transport);
       return appClient;
     } catch (error) {
