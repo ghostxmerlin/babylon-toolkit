@@ -7,7 +7,7 @@ import {
   RewardsPreviewModal,
 } from "@babylonlabs-io/core-ui";
 import { useWalletConnect } from "@babylonlabs-io/wallet-connector";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { Container } from "@/ui/common/components/Container/Container";
@@ -27,18 +27,19 @@ import { ubbnToBaby } from "@/ui/common/utils/bbn";
 import { maxDecimals } from "@/ui/common/utils/maxDecimals";
 import { useRewardsService } from "@/ui/common/hooks/services/useRewardsService";
 import { ClaimStatusModal } from "@/ui/common/components/Modals/ClaimStatusModal/ClaimStatusModal";
+import { useCoStakingService } from "@/ui/common/hooks/services/useCoStakingService";
+import { calculateCoStakingAmount } from "@/ui/common/utils/calculateCoStakingAmount";
+import {
+  NAVIGATION_STATE_KEYS,
+  type NavigationState,
+} from "@/ui/common/constants/navigation";
 
 const formatter = Intl.NumberFormat("en", {
   notation: "compact",
   maximumFractionDigits: 2,
 });
 
-const BABY_TO_STAKE_AMOUNT = 5324;
-const CO_STAKING_AMOUNT = 100000;
-
 const MAX_DECIMALS = 6;
-
-type ClaimType = "btc_staking" | "baby_staking";
 
 function RewardsPageContent() {
   const { open: openWidget } = useWalletConnect();
@@ -62,8 +63,17 @@ function RewardsPageContent() {
     loading: babyLoading,
   } = useBabyRewardState();
 
-  const { showPreview: btcShowPreview, claimRewards: btcClaimRewards } =
-    useRewardsService();
+  const { claimRewards: btcClaimRewards } = useRewardsService();
+
+  const {
+    getAdditionalBabyNeeded,
+    rewardsTracker,
+    currentRewards,
+    rewardSupply,
+    aprData,
+  } = useCoStakingService();
+
+  const additionalBabyNeeded = getAdditionalBabyNeeded();
 
   const btcRewardBaby = maxDecimals(
     ubbnToBaby(Number(btcRewardUbbn || 0)),
@@ -73,21 +83,43 @@ function RewardsPageContent() {
     ubbnToBaby(Number(babyRewardUbbn || 0n)),
     MAX_DECIMALS,
   );
+
+  // Note: Co-staking bonus is already included in BTC rewards
+  // Total = BTC rewards (includes co-staking bonus if eligible) + BABY rewards
   const totalBabyRewards = maxDecimals(
     btcRewardBaby + babyRewardBaby,
     MAX_DECIMALS,
   );
 
+  // Calculate co-staking amount split from BTC rewards
+  const coStakingSplit = calculateCoStakingAmount(
+    btcRewardBaby,
+    rewardsTracker?.total_score,
+    currentRewards?.total_score,
+    rewardsTracker?.active_baby,
+    rewardSupply,
+    aprData?.btc_staking,
+  );
+
+  const coStakingAmountBaby = coStakingSplit?.coStakingAmount;
+  const baseBtcRewardBaby = coStakingSplit?.baseBtcAmount ?? btcRewardBaby;
+
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [typeToClaim] = useState<ClaimType>("btc_staking");
+  const [claimingBtc, setClaimingBtc] = useState(false);
+  const [claimingBaby, setClaimingBaby] = useState(false);
+  const [btcTxHash, setBtcTxHash] = useState("");
+  const [babyTxHash, setBabyTxHash] = useState("");
 
   const processing =
-    typeToClaim === "btc_staking" ? btcProcessing : babyLoading;
+    btcProcessing || babyLoading || claimingBtc || claimingBaby;
   const showProcessingModal =
-    typeToClaim === "btc_staking" ? btcShowProcessingModal : false;
-  const transactionHash =
-    typeToClaim === "btc_staking" ? btcTransactionHash : "";
-  const transactionFee = typeToClaim === "btc_staking" ? btcTransactionFee : 0;
+    claimingBtc || claimingBaby || btcShowProcessingModal;
+
+  const transactionHashes = [
+    btcTxHash || btcTransactionHash,
+    babyTxHash,
+  ].filter(Boolean);
+  const transactionFee = btcTransactionFee; // Primary fee shown is BTC staking fee
 
   function NotConnected() {
     return (
@@ -121,44 +153,119 @@ function RewardsPageContent() {
   }
 
   const handleStakeMoreClick = () => {
-    navigate("/baby");
+    navigate("/baby", {
+      state: {
+        [NAVIGATION_STATE_KEYS.PREFILL_COSTAKING]: true,
+      } satisfies NavigationState,
+    });
   };
+
+  // Hoist reward checks to avoid duplicate declarations
+  const hasBtcRewards = btcRewardUbbn && btcRewardUbbn > 0;
+  const hasBabyRewards = babyRewardUbbn && babyRewardUbbn > 0n;
 
   const handleClaimClick = async () => {
     if (processing) return;
 
-    // Claim based on the default typeToClaim
-    if (typeToClaim === "btc_staking") {
-      if (!btcRewardUbbn || btcRewardUbbn === 0) return;
-      await btcShowPreview();
-      setPreviewOpen(true);
-    } else if (typeToClaim === "baby_staking") {
-      if (!babyRewardUbbn || babyRewardUbbn === 0n) return;
-      setPreviewOpen(true);
-    }
+    if (!hasBtcRewards && !hasBabyRewards) return;
+
+    // Skip fee pre-estimation for BTC rewards. Fees are calculated
+    // during the actual transaction signing phase, which is more reliable.
+
+    setPreviewOpen(true);
   };
 
-  const handleProceed = () => {
-    if (typeToClaim === "btc_staking") {
-      btcClaimRewards();
-    } else if (typeToClaim === "baby_staking") {
-      babyClaimAll();
-    }
+  const handleProceed = async () => {
     setPreviewOpen(false);
+
+    // Claim BTC staking rewards
+    if (hasBtcRewards) {
+      try {
+        setClaimingBtc(true);
+        const btcResult = await btcClaimRewards();
+        if (btcResult?.txHash) {
+          setBtcTxHash(btcResult.txHash);
+        }
+      } catch (error) {
+        console.error("Error claiming BTC rewards:", error);
+      } finally {
+        setClaimingBtc(false);
+      }
+    }
+
+    // Claim BABY staking rewards
+    if (hasBabyRewards) {
+      try {
+        setClaimingBaby(true);
+        const babyResult = await babyClaimAll();
+        if (babyResult?.txHash) {
+          setBabyTxHash(babyResult.txHash);
+        }
+      } catch (error) {
+        console.error("Error claiming BABY rewards:", error);
+      } finally {
+        setClaimingBaby(false);
+      }
+    }
   };
 
   const handleClose = () => {
     setPreviewOpen(false);
   };
+  // Note: Co-staking bonus is included in BTC rewards, not claimed separately
+  const hasAnyRewards = hasBtcRewards || hasBabyRewards;
+  const claimDisabled = !hasAnyRewards || processing;
 
-  const claimDisabled =
-    typeToClaim === "btc_staking"
-      ? !btcRewardUbbn || btcRewardUbbn === 0 || processing
-      : !babyRewardUbbn || babyRewardUbbn === 0n || processing;
+  const isStakeMoreActive = FF.IsCoStakingEnabled && additionalBabyNeeded > 0;
 
-  const stakeMoreCta = FF.IsCoStakingEnabled
-    ? `Stake ${formatter.format(BABY_TO_STAKE_AMOUNT)} ${bbnCoinSymbol} to Unlock Full Rewards`
+  const stakeMoreCta = isStakeMoreActive
+    ? `Stake ${formatter.format(additionalBabyNeeded)} ${bbnCoinSymbol} to Unlock Full Rewards`
     : undefined;
+
+  const tokens = useMemo(() => {
+    return [
+      ...(hasBtcRewards
+        ? [
+            {
+              name: `${btcCoinSymbol} Staking`,
+              amount: {
+                token: `${btcRewardBaby} ${bbnCoinSymbol}`,
+                usd: "",
+              },
+            },
+          ]
+        : []),
+      ...(hasBabyRewards
+        ? [
+            {
+              name: `${bbnCoinSymbol} Staking`,
+              amount: {
+                token: `${babyRewardBaby} ${bbnCoinSymbol}`,
+                usd: "",
+              },
+            },
+          ]
+        : []),
+    ];
+  }, [
+    hasBtcRewards,
+    hasBabyRewards,
+    btcRewardBaby,
+    babyRewardBaby,
+    btcCoinSymbol,
+    bbnCoinSymbol,
+  ]);
+
+  const handleCloseProcessingModal = () => {
+    // Reset all claim-related state variables
+    btcCloseProcessingModal();
+    btcSetTransactionHash("");
+    setBtcTxHash("");
+    setBabyTxHash("");
+    // Ensure claiming flags are reset even if finally blocks didn't execute
+    setClaimingBtc(false);
+    setClaimingBaby(false);
+  };
 
   return (
     <Content>
@@ -172,18 +279,20 @@ function RewardsPageContent() {
               <CoStakingRewardsSubsection
                 totalAmount={`${totalBabyRewards.toLocaleString()}`}
                 totalSymbol={bbnCoinSymbol}
-                btcRewardAmount={`${btcRewardBaby.toLocaleString()}`}
+                btcRewardAmount={`${baseBtcRewardBaby.toLocaleString()}`}
                 btcSymbol={btcCoinSymbol}
                 babyRewardAmount={`${babyRewardBaby.toLocaleString()}`}
                 babySymbol={bbnCoinSymbol}
                 coStakingAmount={
-                  FF.IsCoStakingEnabled ? `${CO_STAKING_AMOUNT}` : undefined
+                  coStakingAmountBaby !== undefined
+                    ? `${coStakingAmountBaby.toLocaleString()}`
+                    : undefined
                 }
                 avatarUrl={logo}
                 onClaim={handleClaimClick}
                 claimDisabled={claimDisabled}
                 onStakeMore={
-                  FF.IsCoStakingEnabled ? handleStakeMoreClick : undefined
+                  isStakeMoreActive ? handleStakeMoreClick : undefined
                 }
                 stakeMoreCta={stakeMoreCta}
               />
@@ -195,24 +304,10 @@ function RewardsPageContent() {
       <RewardsPreviewModal
         open={previewOpen}
         processing={processing}
-        title={
-          typeToClaim === "btc_staking"
-            ? "Claim BTC Staking Rewards"
-            : "Claim BABY Staking Rewards"
-        }
+        title="Claim All Rewards"
         onClose={handleClose}
         onProceed={handleProceed}
-        tokens={[
-          {
-            name: bbnCoinSymbol,
-            amount: {
-              token: `${
-                typeToClaim === "btc_staking" ? btcRewardBaby : babyRewardBaby
-              } ${bbnCoinSymbol}`,
-              usd: "",
-            },
-          },
-        ]}
+        tokens={tokens}
         transactionFees={{
           token: `${ubbnToBaby(transactionFee).toFixed(6)} ${bbnCoinSymbol}`,
           usd: "",
@@ -221,14 +316,9 @@ function RewardsPageContent() {
 
       <ClaimStatusModal
         open={showProcessingModal}
-        onClose={() => {
-          if (typeToClaim === "btc_staking") {
-            btcCloseProcessingModal();
-            btcSetTransactionHash("");
-          }
-        }}
+        onClose={handleCloseProcessingModal}
         loading={processing}
-        transactionHash={transactionHash}
+        transactionHash={transactionHashes}
       />
     </Content>
   );
