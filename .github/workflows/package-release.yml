@@ -20,10 +20,9 @@ jobs:
           fetch-tags: true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: pnpm/action-setup@v4
         with:
-          node-version: '24.2.0'
-          cache: 'pnpm'
+          version: 10
 
       - name: Install dependencies
         run: pnpm ci
