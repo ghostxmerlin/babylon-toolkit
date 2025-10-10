@@ -26,6 +26,7 @@ import {
 } from "@/ui/baby/state/RewardState";
 import { ubbnToBaby } from "@/ui/common/utils/bbn";
 import { maxDecimals } from "@/ui/common/utils/maxDecimals";
+import { formatBalance } from "@/ui/common/utils/formatCryptoBalance";
 import { useRewardsService } from "@/ui/common/hooks/services/useRewardsService";
 import {
   ClaimStatus,
@@ -263,21 +264,30 @@ function RewardsPageContent() {
     if (hasBtcRewards) {
       items.push({
         name: `${btcCoinSymbol} Staking`,
-        amount: { token: `${baseBtcRewardBaby} ${bbnCoinSymbol}`, usd: "" },
+        amount: {
+          token: formatBalance(baseBtcRewardBaby, bbnCoinSymbol),
+          usd: "",
+        },
       });
     }
 
     if (hasBabyRewards) {
       items.push({
         name: `${bbnCoinSymbol} Staking`,
-        amount: { token: `${babyRewardBaby} ${bbnCoinSymbol}`, usd: "" },
+        amount: {
+          token: formatBalance(babyRewardBaby, bbnCoinSymbol),
+          usd: "",
+        },
       });
     }
 
     if (hasBtcRewards && coStakingAmountBaby && coStakingAmountBaby > 0) {
       items.push({
         name: `Co-staking`,
-        amount: { token: `${coStakingAmountBaby} ${bbnCoinSymbol}`, usd: "" },
+        amount: {
+          token: formatBalance(coStakingAmountBaby, bbnCoinSymbol),
+          usd: "",
+        },
       });
     }
 
@@ -313,15 +323,15 @@ function RewardsPageContent() {
           >
             <Section title="Total Rewards">
               <CoStakingRewardsSubsection
-                totalAmount={`${totalBabyRewards.toLocaleString()}`}
+                totalAmount={formatBalance(totalBabyRewards)}
                 totalSymbol={bbnCoinSymbol}
-                btcRewardAmount={`${baseBtcRewardBaby.toLocaleString()}`}
+                btcRewardAmount={formatBalance(baseBtcRewardBaby)}
                 btcSymbol={btcCoinSymbol}
-                babyRewardAmount={`${babyRewardBaby.toLocaleString()}`}
+                babyRewardAmount={formatBalance(babyRewardBaby)}
                 babySymbol={bbnCoinSymbol}
                 coStakingAmount={
                   coStakingAmountBaby !== undefined
-                    ? `${coStakingAmountBaby.toLocaleString()}`
+                    ? formatBalance(coStakingAmountBaby)
                     : undefined
                 }
                 avatarUrl={logo}
