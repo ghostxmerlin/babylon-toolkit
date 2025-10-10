@@ -33,33 +33,42 @@ export interface ProofOfPossessionParams {
  *
  * @param params - PoP parameters
  * @returns BIP-322 signature
+ * @throws Error if validation fails or wallet doesn't support signing
  */
 export async function createProofOfPossession(
   params: ProofOfPossessionParams,
-): Promise<string | undefined> {
+): Promise<string> {
+  // Validate inputs
+  if (!params.ethAddress) {
+    throw new Error('[PoP] Ethereum address is required');
+  }
+  if (!params.btcAddress) {
+    throw new Error('[PoP] BTC address is required');
+  }
+
+  // Check if wallet supports message signing
   if (!params.signMessage) {
-    console.warn(
-      '[PoP] BTC wallet does not support message signing, skipping PoP',
+    throw new Error(
+      'BTC wallet does not support message signing. Please use a wallet that supports BIP-322 message signing (e.g., Unisat, Xverse)',
     );
-    console.warn(
-      '[PoP] If smart contract requires PoP, the transaction will fail',
-    );
-    return undefined;
   }
 
   try {
     // BIP-322 message format: sign ETH address with BTC key
-    const message = `Babylon BTC Vault - Ethereum Address: ${params.ethAddress}`;
+    // Per spec: "Proof-of-possession signed by the depositor's BTC private key over its ETH address following BIP322"
+    const message = params.ethAddress;
 
     // Request signature from BTC wallet
     const signature = await params.signMessage(message);
 
+    // Validate signature is not empty
+    if (!signature || signature.length === 0) {
+      throw new Error('BTC wallet returned empty signature');
+    }
+
     return signature;
   } catch (error) {
-    console.error('[PoP] Failed to create proof of possession:', error);
-    console.warn(
-      '[PoP] Continuing without PoP - transaction may fail if contract requires it',
-    );
-    return undefined;
+    // Re-throw all errors - PoP is required
+    throw error;
   }
 }
