@@ -51,14 +51,6 @@ const config: ChainConfigArr = [
   },
   {
     chain: "ETH",
-    connectors: [
-      {
-        id: "appkit-eth-connector",
-        widget: ({ onError }: { onError?: (e: Error) => void }) => (
-          <AppKitConnectButton onError={onError} />
-        ),
-      },
-    ],
     config: getNetworkConfigETH(),
   },
 ];
