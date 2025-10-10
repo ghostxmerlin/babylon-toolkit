@@ -12,8 +12,8 @@ import { getPublicKeyFromXpub, toNetwork } from "@/core/utils/wallet";
 import logo from "./logo.svg";
 import { getPolicyForTransaction } from "./policy";
 
-// 🔧 简单的配置开关 - 修改这里来切换模拟器/真机
-const USE_SIMULATOR = false; // true: 使用模拟器, false: 使用真机
+
+const USE_SIMULATOR = true; // true: emulator, false: real device
 const SIMULATOR_URL = "http://localhost:5000";
 
 // Simple browser-compatible Speculos transport
