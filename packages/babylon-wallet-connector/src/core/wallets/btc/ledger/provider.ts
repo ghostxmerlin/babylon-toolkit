@@ -49,7 +49,7 @@ class BrowserSpeculosTransport extends Transport {
       const result = await response.json();
       return Buffer.from(result.data, "hex");
     } catch (error) {
-      console.error("❌ APDU exchange failed:", error);
+      console.error("APDU exchange failed:", error);
       throw error;
     }
   }
@@ -87,9 +87,9 @@ async function openSpeculosAndWait(baseURL: string = "http://localhost:5000"): P
       const transport = await BrowserSpeculosTransport.open(baseURL);
       return transport;
     } catch (e) {
-      console.error(`❌ Attempt ${i + 1} failed:`, e);
+      console.error(`Attempt ${i + 1} failed:`, e);
       if (i >= 2) {
-        console.error("🔴 All attempts failed, throwing error");
+        console.error("All attempts failed, throwing error");
         throw e;
       }
       await sleep(2000);
@@ -106,18 +106,15 @@ export class LedgerProvider implements IBTCProvider {
     this.config = config;
   }
 
-  // 检查是否使用模拟器 - 直接使用配置变量
   private isUsingSimulator(): boolean {
     return USE_SIMULATOR;
   }
 
-  // 获取模拟器URL - 直接使用配置变量
   private getSimulatorURL(): string {
     return SIMULATOR_URL;
   }
 
   // Create a transport instance for Ledger devices
-  // 根据环境变量选择模拟器或真机
   async createTransport(): Promise<Transport> {
     if (this.isUsingSimulator()) {
       return await openSpeculosAndWait(this.getSimulatorURL());
@@ -154,8 +151,8 @@ export class LedgerProvider implements IBTCProvider {
       const appClient = new AppClient(transport);
       return appClient;
     } catch (error) {
-      console.error("❌ Error in createAppClient:", error);
-      console.error("❌ Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("Error in createAppClient:", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }
@@ -175,8 +172,8 @@ export class LedgerProvider implements IBTCProvider {
       }
       return policy;
     } catch (error) {
-      console.error("❌ Error in getWalletPolicy:", error);
-      console.error("❌ Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("Error in getWalletPolicy:", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }
@@ -199,8 +196,8 @@ export class LedgerProvider implements IBTCProvider {
       const publicKeyHex = publicKeyBuffer.toString("hex");
       return { address, publicKeyHex };
     } catch (error) {
-      console.error("❌ Error in getTaprootAccount:", error);
-      console.error("❌ Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("Error in getTaprootAccount:", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }
@@ -230,8 +227,8 @@ export class LedgerProvider implements IBTCProvider {
         publicKeyHex,
       };
     } catch (error) {
-      console.error("❌ Error in connectWallet:", error);
-      console.error("❌ Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("Error in connectWallet:", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   };
