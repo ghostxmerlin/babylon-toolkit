@@ -688,9 +688,6 @@ importers:
       '@cosmjs/tendermint-rpc':
         specifier: 0.36.0
         version: 0.36.0
-      '@mempool/mempool.js':
-        specifier: 3.0.0
-        version: 3.0.0
       '@routes/vault':
         specifier: workspace:*
         version: link:../../routes/vault
@@ -2565,9 +2562,6 @@ packages:
       '@types/react': '>=16'
       react: '>=16'
 
-  '@mempool/mempool.js@3.0.0':
-    resolution: {integrity: sha512-ZfNDcPA0HLpE8u+6/Tl/53F0WTL1CebwIrOIUeajvlXiXlDkhj/pTxnXQhMoxKOJK3qQnUjt6CQuX/TGBaFw7A==}
-
   '@microsoft/api-extractor-model@7.30.7':
     resolution: {integrity: sha512-TBbmSI2/BHpfR9YhQA7nH0nqVmGgJ0xH0Ex4D99/qBDAUpnhA2oikGmdXanbw9AWWY/ExBYIpkmY8dBHdla3YQ==}
 
@@ -4209,9 +4203,6 @@ packages:
 
   axios@1.12.2:
     resolution: {integrity: sha512-vMJzPewAlRyOgxV2dU0Cuz2O8zzzx9VYtbJOaBgXFeLc4IV/Eg50n4LowmehOOR61S8ZMpc2K5Sa7g6A4jfkUw==}
-
-  axios@1.7.4:
-    resolution: {integrity: sha512-DukmaFRnY6AzAALSH4J2M3k6PkaC+MfaAGdEERRWcC9q3/TWQwLpHR8ZRLKTdQ3aBDL64EdluRDjJqKw+BPZEw==}
 
   babel-jest@29.7.0:
     resolution: {integrity: sha512-BrvGY3xZSwEcCzKvKsCi2GgHqDqsYkOP4/by5xCgIwGXQxIEh+8ew3gmrE1y7XRR6LHZIj6yLYnUi/mm2KXKBg==}
@@ -11186,15 +11177,6 @@ snapshots:
       '@types/react': 18.3.23
       react: 18.3.1
 
-  '@mempool/mempool.js@3.0.0':
-    dependencies:
-      axios: 1.7.4
-      ws: 8.18.3
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - utf-8-validate
-
   '@microsoft/api-extractor-model@7.30.7(@types/node@22.17.0)':
     dependencies:
       '@microsoft/tsdoc': 0.15.1
@@ -13121,14 +13103,6 @@ snapshots:
       fast-glob: 3.3.3
 
   axios@1.12.2:
-    dependencies:
-      follow-redirects: 1.15.9
-      form-data: 4.0.4
-      proxy-from-env: 1.1.0
-    transitivePeerDependencies:
-      - debug
-
-  axios@1.7.4:
     dependencies:
       follow-redirects: 1.15.9
       form-data: 4.0.4
