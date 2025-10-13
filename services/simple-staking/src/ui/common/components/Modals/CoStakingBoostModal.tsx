@@ -10,11 +10,13 @@ import { SubmitModal } from "./SubmitModal";
 interface FeedbackModalProps {
   open: boolean;
   onClose: () => void;
+  onSubmit: () => void;
 }
 
 export const CoStakingBoostModal: React.FC<FeedbackModalProps> = ({
   open,
   onClose,
+  onSubmit,
 }) => {
   const { coinSymbol: btcCoinSymbol } = getNetworkConfigBTC();
   const { coinSymbol: babyCoinSymbol } = getNetworkConfigBBN();
@@ -45,7 +47,9 @@ export const CoStakingBoostModal: React.FC<FeedbackModalProps> = ({
       open={open}
       submitButton={submitButtonText}
       cancelButton=""
-      onSubmit={onClose}
+      onSubmit={onSubmit}
+      onClose={onClose}
+      showCloseButton={true}
     >
       <p className="text-center text-base text-accent-secondary">
         Your current APR is{" "}
