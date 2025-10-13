@@ -141,7 +141,9 @@ export class LedgerProvider implements IBTCProvider {
 
   private getDerivationPath(): string {
     const networkDerivationIndex = this.getNetworkDerivationIndex();
-    return `m/86'/${networkDerivationIndex}'/0'`;
+    // return `m/86'/${networkDerivationIndex}'/0'`;
+    // TODO: how to return different path ...
+    return `m/84'/${networkDerivationIndex}'/0'`;
   }
 
   // Create a new AppClient instance using the transport
@@ -165,8 +167,9 @@ export class LedgerProvider implements IBTCProvider {
       }
       
       const networkDerivationIndex = this.getNetworkDerivationIndex();
-      const policyDescriptor = `[${fpr}/86'/${networkDerivationIndex}'/0']${extendedPubKey}`;
-      const policy = new DefaultWalletPolicy("tr(@0/**)", policyDescriptor);
+      // TODO: policy choose
+      const policyDescriptor = `[${fpr}/84'/${networkDerivationIndex}'/0']${extendedPubKey}`;
+      const policy = new DefaultWalletPolicy("wpkh(@0/**)", policyDescriptor);
       if (!policy) {
         throw new Error("Could not create the wallet policy");
       }
@@ -178,12 +181,16 @@ export class LedgerProvider implements IBTCProvider {
     }
   }
 
-  private async getTaprootAccount(
+  private async getLedgerAccount(
     app: AppClient,
     policy: DefaultWalletPolicy,
     extendedPublicKey: string,
   ): Promise<{ address: string; publicKeyHex: string }> {
     try {
+      console.log("Getting Ledger account with policy:", policy);
+      console.log("Extended Public Key:", extendedPublicKey);
+      // Get and display on the screen the first address
+      // We use change=0 (external) and addressIndex=0 (first address)
       const address = await app.getWalletAddress(
         policy,
         null,
@@ -207,22 +214,22 @@ export class LedgerProvider implements IBTCProvider {
       const app = await this.createAppClient();
       // Get the master key fingerprint
       const fpr = await app.getMasterFingerprint();
-      const taprootPath = this.getDerivationPath();
-     // Get and display on the screen the first taproot address
-      const firstTaprootAccountExtendedPubkey = await app.getExtendedPubkey(taprootPath);
-      const firstTaprootAccountPolicy = await this.getWalletPolicy(app, fpr, taprootPath);
-      if (!firstTaprootAccountPolicy) throw new Error("Could not retrieve the policy");
-      const { address, publicKeyHex } = await this.getTaprootAccount(
+      const derivationPathLv3 = this.getDerivationPath();
+     
+      const extendedPubkey = await app.getExtendedPubkey(derivationPathLv3);
+      const accountPolicy = await this.getWalletPolicy(app, fpr, derivationPathLv3);
+      if (!accountPolicy) throw new Error("Could not retrieve the policy");
+      const { address, publicKeyHex } = await this.getLedgerAccount(
         app,
-        firstTaprootAccountPolicy,
-        firstTaprootAccountExtendedPubkey,
+        accountPolicy,
+        extendedPubkey,
       );
       this.ledgerWalletInfo = {
         app,
-        policy: firstTaprootAccountPolicy,
+        policy: accountPolicy,
         mfp: fpr,
-        extendedPublicKey: firstTaprootAccountExtendedPubkey,
-        path: taprootPath,
+        extendedPublicKey: extendedPubkey,
+        path: derivationPathLv3,
         address,
         publicKeyHex,
       };
