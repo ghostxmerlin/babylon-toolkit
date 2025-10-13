@@ -1,24 +1,82 @@
-import { useCallback, useEffect, useMemo, type PropsWithChildren } from "react";
+import { useEffect, useMemo, useState, type PropsWithChildren } from "react";
 
 import { useEventBus } from "@/ui/common/hooks/useEventBus";
 import {
   useCoStakingService,
   DEFAULT_COSTAKING_SCORE_RATIO,
 } from "@/ui/common/hooks/services/useCoStakingService";
+import { useDelegations } from "@/ui/baby/hooks/api/useDelegations";
+import { useCosmosWallet } from "@/ui/common/context/wallet/CosmosWalletProvider";
 import { createStateUtils } from "@/ui/common/utils/createStateUtils";
-import {
-  calculateBTCEligibilityPercentage,
-  calculateRequiredBabyTokens,
-} from "@/ui/common/utils/coStakingCalculations";
+import { calculateRequiredBabyTokens } from "@/ui/common/utils/coStakingCalculations";
 import { ubbnToBaby } from "@/ui/common/utils/bbn";
+import { network } from "@/ui/common/config/network/bbn";
+import {
+  DelegationV2StakingState,
+  type DelegationV2,
+} from "@/ui/common/types/delegationsV2";
 import type {
   CoStakingParams,
-  CoStakerRewardsTracker,
-  CoStakingCurrentRewards,
   CoStakingAPRData,
+  PersonalizedAPRResponse,
 } from "@/ui/common/types/api/coStaking";
+import type {
+  PendingOperation,
+  PendingOperationStorage,
+} from "@/ui/baby/hooks/services/usePendingOperationsService";
 
 import { useDelegationV2State } from "./DelegationV2State";
+
+interface BabyDelegationBalance {
+  amount: string;
+  denom: string;
+}
+
+interface BabyDelegationData {
+  balance: BabyDelegationBalance | undefined;
+  delegation: {
+    delegator_address: string;
+    validator_address: string;
+    shares: string;
+  };
+}
+
+/**
+ * Helper to read pending BABY operations from localStorage.
+ * This avoids needing the PendingOperationsProvider context.
+ *
+ * Note: Deserializes PendingOperationStorage (string amounts) → PendingOperation (bigint amounts)
+ * because JSON.parse doesn't support BigInt natively.
+ */
+const getPendingBabyOperations = (
+  bech32Address: string | undefined,
+): PendingOperation[] => {
+  if (!bech32Address) return [];
+
+  try {
+    const storageKey = `baby-pending-operations-${network}-${bech32Address}`;
+    const stored = localStorage.getItem(storageKey);
+    if (!stored) return [];
+
+    const parsed = JSON.parse(stored) as PendingOperationStorage[];
+    return parsed.map((item) => ({
+      validatorAddress: item.validatorAddress,
+      amount: BigInt(item.amount),
+      operationType: item.operationType,
+      timestamp: item.timestamp,
+      walletAddress: item.walletAddress,
+      epoch: item.epoch,
+    }));
+  } catch (error) {
+    // Log parse failures for debugging but don't throw
+    // This ensures the app continues to function even with corrupted localStorage
+    console.warn(
+      `Failed to parse pending BABY operations from localStorage for ${bech32Address}:`,
+      error,
+    );
+    return [];
+  }
+};
 
 // Event channels that should trigger co-staking data refresh
 const CO_STAKING_REFRESH_CHANNELS = [
@@ -28,7 +86,6 @@ const CO_STAKING_REFRESH_CHANNELS = [
 
 export interface CoStakingEligibility {
   isEligible: boolean;
-  eligibilityPercentage: number;
   activeSatoshis: number;
   activeBabyTokens: number;
   requiredBabyTokens: number;
@@ -37,12 +94,11 @@ export interface CoStakingEligibility {
 
 interface CoStakingStateValue {
   params: CoStakingParams | null;
-  rewardsTracker: CoStakerRewardsTracker | null;
-  currentRewards: CoStakingCurrentRewards | null;
   // Computed values
   eligibility: CoStakingEligibility;
   scoreRatio: number;
   aprData: CoStakingAPRData;
+  rawAprData: PersonalizedAPRResponse["data"] | null;
   isLoading: boolean;
   isEnabled: boolean;
   hasError: boolean;
@@ -52,7 +108,6 @@ interface CoStakingStateValue {
 
 const defaultEligibility: CoStakingEligibility = {
   isEligible: false,
-  eligibilityPercentage: 0,
   activeSatoshis: 0,
   activeBabyTokens: 0,
   requiredBabyTokens: 0,
@@ -61,18 +116,16 @@ const defaultEligibility: CoStakingEligibility = {
 
 const defaultState: CoStakingStateValue = {
   params: null,
-  rewardsTracker: null,
-  currentRewards: null,
   eligibility: defaultEligibility,
   scoreRatio: DEFAULT_COSTAKING_SCORE_RATIO,
   aprData: {
     currentApr: null,
     boostApr: null,
     additionalBabyNeeded: 0,
-    eligibilityPercentage: 0,
     isLoading: false,
     error: undefined,
   },
+  rawAprData: null,
   isLoading: false,
   isEnabled: false,
   hasError: false,
@@ -85,20 +138,105 @@ const { StateProvider, useState: useCoStakingState } =
 
 export function CoStakingState({ children }: PropsWithChildren) {
   const eventBus = useEventBus();
-  const { delegations } = useDelegationV2State();
+  const { delegations: btcDelegations } = useDelegationV2State();
+  const { bech32Address } = useCosmosWallet();
+  const { data: babyDelegationsRaw = [] } = useDelegations(bech32Address);
+
+  // Track localStorage version to force re-computation of pending operations
+  const [, setStorageVersion] = useState(0);
+
+  // Listen for localStorage changes (both from other tabs and same tab)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.includes("baby-pending-operations")) {
+        setStorageVersion((v) => v + 1);
+      }
+    };
+
+    const handleCustomStorage = () => {
+      setStorageVersion((v) => v + 1);
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener(
+      "baby-pending-operations-updated",
+      handleCustomStorage,
+    );
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(
+        "baby-pending-operations-updated",
+        handleCustomStorage,
+      );
+    };
+  }, []);
+
+  // Get pending BABY operations from localStorage - now reactive to storage changes
+  const pendingBabyOps = useMemo(() => {
+    const ops = getPendingBabyOperations(bech32Address);
+    return ops;
+  }, [bech32Address]);
+
+  /**
+   * Calculate total BTC staked (only broadcasted delegations)
+   * Includes: PENDING, ACTIVE, INTERMEDIATE_PENDING_BTC_CONFIRMATION
+   * Excludes: VERIFIED (Babylon verified but not yet broadcasted to BTC)
+   * Excludes: INTERMEDIATE_PENDING_VERIFICATION (waiting for Babylon verification)
+   */
+  const totalBtcStakedSat = useMemo(() => {
+    const activeDelegations = btcDelegations.filter(
+      (d: DelegationV2) =>
+        d.state === DelegationV2StakingState.PENDING ||
+        d.state === DelegationV2StakingState.ACTIVE ||
+        d.state ===
+          DelegationV2StakingState.INTERMEDIATE_PENDING_BTC_CONFIRMATION,
+    );
+
+    const total = activeDelegations.reduce(
+      (sum: number, d: DelegationV2) => sum + d.stakingAmount,
+      0,
+    );
+
+    return total;
+  }, [btcDelegations]);
+
+  /**
+   * Calculate total BABY staked (confirmed + pending from localStorage)
+   * This matches the BTC calculation behavior for consistency
+   */
+  const totalBabyStakedUbbn = useMemo(() => {
+    // Confirmed delegations from API
+    const confirmedUbbn = babyDelegationsRaw.reduce(
+      (sum: number, d: unknown) => {
+        const delegation = d as BabyDelegationData;
+        return sum + Number(delegation.balance?.amount || 0);
+      },
+      0,
+    );
+
+    // Pending stake operations from localStorage
+    const pendingStakeUbbn = pendingBabyOps
+      .filter((op) => op.operationType === "stake")
+      .reduce((sum: number, op) => sum + Number(op.amount), 0);
+
+    const total = confirmedUbbn + pendingStakeUbbn;
+
+    return total;
+  }, [babyDelegationsRaw, pendingBabyOps]);
 
   const {
     coStakingParams,
-    rewardsTracker,
-    currentRewards,
+    rawAprData,
     getScoreRatio,
     getCoStakingAPR,
     getUserCoStakingStatus,
     refreshCoStakingData,
+    getRequiredBabyForSatoshis,
     isLoading,
     error,
     isCoStakingEnabled,
-  } = useCoStakingService();
+  } = useCoStakingService(totalBtcStakedSat, totalBabyStakedUbbn);
 
   const scoreRatio = getScoreRatio();
   const aprData = getCoStakingAPR();
@@ -110,37 +248,22 @@ export function CoStakingState({ children }: PropsWithChildren) {
     const activeBabyUbbn = status.activeBaby;
     const activeBabyTokens = ubbnToBaby(activeBabyUbbn);
 
-    const eligibilityPercentage = calculateBTCEligibilityPercentage(
-      activeSatoshis,
-      activeBabyUbbn,
-      scoreRatio,
-    );
-
     const requiredBabyUbbn = calculateRequiredBabyTokens(
       activeSatoshis,
       scoreRatio,
     );
     const requiredBabyTokens = ubbnToBaby(requiredBabyUbbn);
 
-    const isEligible = eligibilityPercentage > 0;
+    const isEligible = activeBabyUbbn > 0;
 
     return {
       isEligible,
-      eligibilityPercentage,
       activeSatoshis,
       activeBabyTokens,
       requiredBabyTokens,
       additionalBabyNeeded: status.additionalBabyNeeded,
     };
   }, [getUserCoStakingStatus, scoreRatio]);
-
-  const getRequiredBabyForSatoshis = useCallback(
-    (satoshis: number): number => {
-      const requiredUbbn = calculateRequiredBabyTokens(satoshis, scoreRatio);
-      return ubbnToBaby(requiredUbbn);
-    },
-    [scoreRatio],
-  );
 
   useEffect(() => {
     const unsubscribeFns = CO_STAKING_REFRESH_CHANNELS.map((channel) =>
@@ -151,20 +274,13 @@ export function CoStakingState({ children }: PropsWithChildren) {
       void unsubscribeFns.forEach((unsubscribe) => void unsubscribe());
   }, [eventBus, refreshCoStakingData]);
 
-  useEffect(() => {
-    if (isCoStakingEnabled && delegations.length > 0) {
-      refreshCoStakingData();
-    }
-  }, [delegations.length, isCoStakingEnabled, refreshCoStakingData]);
-
   const state = useMemo(
     () => ({
       params: coStakingParams?.params || null,
-      rewardsTracker: rewardsTracker || null,
-      currentRewards: currentRewards || null,
       eligibility,
       scoreRatio,
       aprData,
+      rawAprData: rawAprData ?? null,
       isLoading,
       isEnabled: isCoStakingEnabled,
       hasError: Boolean(error),
@@ -173,11 +289,10 @@ export function CoStakingState({ children }: PropsWithChildren) {
     }),
     [
       coStakingParams,
-      rewardsTracker,
-      currentRewards,
       eligibility,
       scoreRatio,
       aprData,
+      rawAprData,
       isLoading,
       isCoStakingEnabled,
       error,

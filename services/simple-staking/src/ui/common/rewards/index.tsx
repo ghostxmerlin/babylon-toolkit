@@ -33,8 +33,7 @@ import {
   ClaimStatusModal,
   ClaimResult,
 } from "@/ui/common/components/Modals/ClaimStatusModal/ClaimStatusModal";
-import { useCoStakingService } from "@/ui/common/hooks/services/useCoStakingService";
-import { calculateCoStakingAmount } from "@/ui/common/utils/calculateCoStakingAmount";
+import { useCoStakingState } from "@/ui/common/state/CoStakingState";
 import {
   NAVIGATION_STATE_KEYS,
   type NavigationState,
@@ -71,15 +70,9 @@ function RewardsPageContent() {
 
   const { claimRewards: btcClaimRewards } = useRewardsService();
 
-  const {
-    getAdditionalBabyNeeded,
-    rewardsTracker,
-    currentRewards,
-    rewardSupply,
-    aprData,
-  } = useCoStakingService();
+  const { eligibility, rawAprData } = useCoStakingState();
 
-  const additionalBabyNeeded = getAdditionalBabyNeeded();
+  const additionalBabyNeeded = eligibility.additionalBabyNeeded;
 
   const btcRewardBaby = maxDecimals(
     ubbnToBaby(Number(btcRewardUbbn || 0)),
@@ -97,18 +90,50 @@ function RewardsPageContent() {
     MAX_DECIMALS,
   );
 
-  // Calculate co-staking amount split from BTC rewards
-  const coStakingSplit = calculateCoStakingAmount(
-    btcRewardBaby,
-    rewardsTracker?.total_score,
-    currentRewards?.total_score,
-    rewardsTracker?.active_baby,
-    rewardSupply,
-    aprData?.btc_staking,
-  );
+  // Calculate co-staking amount split from BTC rewards using API APR ratios
+  const { coStakingAmountBaby, baseBtcRewardBaby } = useMemo(() => {
+    // If co-staking APR data not available, return base values
+    if (!rawAprData || !rawAprData.current) {
+      return {
+        coStakingAmountBaby: 0,
+        baseBtcRewardBaby: btcRewardBaby,
+      };
+    }
 
-  const coStakingAmountBaby = coStakingSplit?.coStakingAmount;
-  const baseBtcRewardBaby = coStakingSplit?.baseBtcAmount ?? btcRewardBaby;
+    const { co_staking_apr, btc_staking_apr, total_apr } = rawAprData.current;
+
+    // If no co-staking APR, all BTC rewards are base BTC rewards
+    // Guard against division by zero and invalid numbers
+    if (
+      co_staking_apr === 0 ||
+      total_apr === 0 ||
+      !isFinite(total_apr) ||
+      total_apr < 0
+    ) {
+      return {
+        coStakingAmountBaby: 0,
+        baseBtcRewardBaby: btcRewardBaby,
+      };
+    }
+
+    // Calculate split based on APR ratios from API
+    const coStakingRatio = co_staking_apr / total_apr;
+    const btcStakingRatio = btc_staking_apr / total_apr;
+
+    const coStakingAmount = maxDecimals(
+      btcRewardBaby * coStakingRatio,
+      MAX_DECIMALS,
+    );
+    const baseBtcAmount = maxDecimals(
+      btcRewardBaby * btcStakingRatio,
+      MAX_DECIMALS,
+    );
+
+    return {
+      coStakingAmountBaby: coStakingAmount,
+      baseBtcRewardBaby: baseBtcAmount,
+    };
+  }, [btcRewardBaby, rawAprData]);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [claimingBtc, setClaimingBtc] = useState(false);
