@@ -11,7 +11,17 @@ import { EmptyState } from './EmptyState';
 import { VaultActivityCard } from './VaultActivityCard';
 import type { VaultActivity } from '../../mockData/vaultActivities';
 
-export function VaultDeposit() {
+export interface VaultDepositProps {
+  ethAddress?: string;
+  btcAddress?: string;
+  isWalletConnected?: boolean;
+}
+
+export function VaultDeposit({
+  ethAddress,
+  btcAddress: btcAddressProp,
+  isWalletConnected: isWalletConnectedProp = false
+}: VaultDepositProps) {
   // Peg out flow state
   const [pegoutActivity, setPegoutActivity] = useState<VaultActivity | null>(null);
   const [pegoutFlowOpen, setPegoutFlowOpen] = useState(false);
@@ -31,12 +41,17 @@ export function VaultDeposit() {
   // Data fetching with peg out handler
   const {
     activities,
-    isWalletConnected,
+    isWalletConnected: _isWalletConnected,
     refetchActivities,
-    connectedAddress,
+    connectedAddress: _connectedAddress,
     btcAddress,
     addPendingPegin,
   } = useVaultPositions(handlePegOut);
+
+  // Use props with fallback to hook values
+  const connectedAddress = ethAddress || _connectedAddress;
+  const effectiveBtcAddress = btcAddressProp || btcAddress;
+  const isWalletConnected = isWalletConnectedProp;
 
   // Peg-in flow modal state
   // Note: Borrow/Repay flows are now in VaultPositions tab
@@ -64,7 +79,7 @@ export function VaultDeposit() {
       // IMPORTANT: The smart contract stores BTC txids as Hex type (with 0x prefix)
       // and uses them as keys in the btcVaults mapping. We normalize to match this format
       // for proper deduplication when confirmed pegins are fetched from the contract.
-      if (connectedAddress && btcAddress) {
+      if (connectedAddress && effectiveBtcAddress) {
         const idForStorage = btcTxId.startsWith('0x')
           ? btcTxId
           : `0x${btcTxId}`;
@@ -74,7 +89,7 @@ export function VaultDeposit() {
           amount: peginAmount.toString(),
           providers: selectedProviders,
           ethAddress: connectedAddress,
-          btcAddress: btcAddress,
+          btcAddress: effectiveBtcAddress,
         };
         addPendingPegin(peginData);
       }
@@ -86,7 +101,7 @@ export function VaultDeposit() {
     },
     [
       connectedAddress,
-      btcAddress,
+      effectiveBtcAddress,
       peginAmount,
       selectedProviders,
       addPendingPegin,
@@ -127,7 +142,7 @@ export function VaultDeposit() {
 
       <PeginSignModal
         open={peginSignModalOpen}
-        onClose={() => {}}
+        onClose={() => { }}
         onSuccess={handlePeginSignSuccess}
         amount={peginAmount}
         selectedProviders={selectedProviders}

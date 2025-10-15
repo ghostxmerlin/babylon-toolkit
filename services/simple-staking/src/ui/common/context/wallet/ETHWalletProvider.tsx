@@ -7,25 +7,25 @@ import {
   useMemo,
   useEffect,
 } from "react";
-import type { ETHTypedData } from "@babylonlabs-io/wallet-connector";
 import {
-  useAppKit,
-  useAppKitAccount,
-  useDisconnect,
-} from "@reown/appkit/react";
-import { useAppKitBridge } from "@babylonlabs-io/wallet-connector";
+  type ETHTypedData,
+  useAppKitBridge,
+  useAppKitOpenListener,
+  openAppKitModal,
+  useChainConnector,
+} from "@babylonlabs-io/wallet-connector";
+import { useDisconnect } from "@reown/appkit/react";
 import { formatUnits } from "viem";
 import {
   useBalance,
   useSignMessage,
   useSignTypedData,
   useSendTransaction,
-  useAccount,
 } from "wagmi";
 
 import { useError } from "@/ui/common/context/Error/ErrorProvider";
-import { useAppKitOpenListener } from "../../hooks/useAppKitOpenListener";
 import { useEthConnectorBridge } from "../../hooks/useEthConnectorBridge";
+import { useETHWalletState } from "../../hooks/useETHWalletState";
 
 interface ETHWalletContextType {
   // Connection state
@@ -89,32 +89,37 @@ const ETHWalletContext = createContext<ETHWalletContextType>({
 export const useETHWallet = () => useContext(ETHWalletContext);
 
 export const ETHWalletProvider = ({ children }: PropsWithChildren) => {
-  // Debug build identifier to verify app build
   const { handleError } = useError();
-
-  // Local state
-  const [loading] = useState(false);
-  const [publicKeyHex] = useState(""); // ETH doesn't expose public key directly
+  const [publicKeyHex] = useState("");
   const [pendingTx, setPendingTx] = useState<string>();
   const [isPending, setIsPending] = useState(false);
   const [networkName, setNetworkName] = useState<string>();
-  const { open } = useAppKit();
-  const { address, isConnected } = useAppKitAccount();
+
+  const ethConnector = useChainConnector("ETH");
+  const walletState = useETHWalletState();
+
   const { disconnect } = useDisconnect();
   useAppKitBridge();
   useAppKitOpenListener();
+
+  const open = useCallback(() => {
+    openAppKitModal();
+  }, []);
   useEthConnectorBridge();
 
-  const { chainId } = useAccount();
+  // Get chainId from wallet state
+  const chainId = walletState.chainId;
+
+  // Use the robust state machine values
+  const address = walletState.address || "";
+  const connected = walletState.isReady && walletState.isConnected;
+
   const { data: balance } = useBalance({
     address: address as `0x${string}` | undefined,
   });
   const { signMessageAsync } = useSignMessage();
   const { signTypedDataAsync } = useSignTypedData();
   const { sendTransactionAsync } = useSendTransaction();
-
-  // Connection state
-  const connected = isConnected && !!address;
 
   // Update network name based on chain ID
   useEffect(() => {
@@ -136,6 +141,11 @@ export const ETHWalletProvider = ({ children }: PropsWithChildren) => {
 
   const ethDisconnect = useCallback(async () => {
     try {
+      // Disconnect from ETH connector
+      if (ethConnector) {
+        await ethConnector.disconnect();
+      }
+      // Also disconnect from AppKit
       await disconnect();
       setPendingTx(undefined);
     } catch (err) {
@@ -147,12 +157,12 @@ export const ETHWalletProvider = ({ children }: PropsWithChildren) => {
         },
       });
     }
-  }, [disconnect, handleError]);
+  }, [disconnect, ethConnector, handleError]);
 
 
   const ethWalletMethods = useMemo(
     () => ({
-      getAddress: async () => address ?? "",
+      getAddress: async () => address,
       getPublicKeyHex: async () => publicKeyHex,
       signMessage: async (message: string) => {
         try {
@@ -212,7 +222,6 @@ export const ETHWalletProvider = ({ children }: PropsWithChildren) => {
       getNonce: async () => 0, // Would need additional hook for nonce
       switchChain: async () => {
         // AppKit handles chain switching through the modal
-        console.log("Chain switching handled by AppKit modal");
       },
     }),
     [
@@ -227,28 +236,31 @@ export const ETHWalletProvider = ({ children }: PropsWithChildren) => {
   );
 
   const ethContextValue = useMemo(
-    () => ({
-      loading,
-      connected,
-      open,
-      disconnect: ethDisconnect,
-      address: address ?? "",
-      publicKeyHex,
-      balance: balance
-        ? parseFloat(formatUnits(balance.value, balance.decimals))
-        : 0,
-      formattedBalance: balance
-        ? formatUnits(balance.value, balance.decimals)
-        : "0",
-      chainId,
-      networkName,
-      pendingTx,
-      isPending,
-      clearError: () => { },
-      ...ethWalletMethods,
-    }),
+    () => {
+      const value = {
+        loading: walletState.isLoading,
+        connected,
+        open,
+        disconnect: ethDisconnect,
+        address: address ?? "",
+        publicKeyHex,
+        balance: balance
+          ? parseFloat(formatUnits(balance.value, balance.decimals))
+          : 0,
+        formattedBalance: balance
+          ? formatUnits(balance.value, balance.decimals)
+          : "0",
+        chainId,
+        networkName,
+        pendingTx,
+        isPending,
+        clearError: () => { /* No-op for compatibility */ },
+        ...ethWalletMethods,
+      };
+      return value;
+    },
     [
-      loading,
+      walletState.isLoading,
       connected,
       open,
       ethDisconnect,

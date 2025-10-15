@@ -55,17 +55,24 @@ export class AppKitProvider implements IETHProvider {
     // Watch for account changes
     const unwatchAccount = watchAccount(config, {
       onChange: (account) => {
+        const previousAddress = this.address;
         this.address = account.address;
         this.chainId = account.chainId;
-        this.emit("accountsChanged", account.address ? [account.address] : []);
+
+        if (previousAddress !== account.address) {
+          this.emit("accountsChanged", account.address ? [account.address] : []);
+        }
       },
     });
 
-    // Watch for chain changes
     const unwatchChain = watchChainId(config, {
       onChange: (chainId) => {
+        const previousChainId = this.chainId;
         this.chainId = chainId;
-        this.emit("chainChanged", `0x${chainId.toString(16)}`);
+
+        if (previousChainId !== chainId) {
+          this.emit("chainChanged", `0x${chainId.toString(16)}`);
+        }
       },
     });
 
@@ -83,7 +90,7 @@ export class AppKitProvider implements IETHProvider {
     try {
       const config = this.getWagmiConfig();
 
-      // First check if already connected
+      // First check if already connected (from previous session)
       const currentAccount = getAccount(config);
       if (currentAccount.address) {
         this.address = currentAccount.address;
@@ -91,7 +98,34 @@ export class AppKitProvider implements IETHProvider {
         return;
       }
 
-      // Always require explicit user action via WalletConnect (no silent injected reuse)
+      // Open AppKit modal for manual connection
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("babylon:open-appkit"));
+
+        const waitForConnection = new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            unwatch();
+            reject(new Error("Connection timeout"));
+          }, 60000);
+
+          const unwatch = watchAccount(config, {
+            onChange: (account) => {
+              if (account.address) {
+                clearTimeout(timeout);
+                unwatch();
+                this.address = account.address;
+                this.chainId = account.chainId;
+                resolve();
+              }
+            },
+          });
+        });
+
+        await waitForConnection;
+        return;
+      }
+
+      // Fallback to direct WalletConnect connection if event system not available
       const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || "e3a2b903ffa3e74e8d1ce1c2a16e4e27";
       const wcConnector = walletConnect({
         projectId,
@@ -123,17 +157,19 @@ export class AppKitProvider implements IETHProvider {
   }
 
   async getAddress(): Promise<string> {
-    if (!this.address) {
-      // Try to get account from wagmi
-      const config = this.getWagmiConfig();
-      const account = getAccount(config);
-      if (account.address) {
-        this.address = account.address;
-        return this.address;
-      }
-      throw new Error("Wallet not connected");
+    const config = this.getWagmiConfig();
+    const account = getAccount(config);
+    if (account.address) {
+      this.address = account.address;
+      this.chainId = account.chainId;
+      return this.address;
     }
-    return this.address;
+
+    if (this.address) {
+      return this.address;
+    }
+
+    throw new Error("Wallet not connected");
   }
 
   async getPublicKeyHex(): Promise<string> {
