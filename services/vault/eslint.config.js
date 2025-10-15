@@ -1,5 +1,4 @@
 import js from "@eslint/js";
-import pluginQuery from "@tanstack/eslint-plugin-query";
 import tsParser from "@typescript-eslint/parser";
 import importPlugin from "eslint-plugin-import-x";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
@@ -15,22 +14,18 @@ export default tseslint.config(
       ".next",
       "node_modules",
       "tests",
-      "e2e",
       "test-results",
       "playwright-report",
       "blob-report",
       "playwright/.cache",
       "out",
-      ".husky",
       "*.{js,ts}",
       "postcss.config.cjs",
       "prettier.config.cjs",
-      "babel.config.cjs",
     ],
   },
   importPlugin.flatConfigs.recommended,
   importPlugin.flatConfigs.typescript,
-  ...pluginQuery.configs["flat/recommended"],
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}"],
@@ -51,7 +46,6 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-hooks/exhaustive-deps": "error",
       "react-hooks/rules-of-hooks": "error",
-      "@tanstack/query/exhaustive-deps": "warn",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },
@@ -88,11 +82,8 @@ export default tseslint.config(
   eslintPluginPrettierRecommended,
   {
     settings: {
-      "import-x/resolver": {
-        typescript: {
-          alwaysTryTypes: true,
-          project: "./tsconfig.lib.json",
-        },
+      "import/resolver": {
+        typescript: true,
       },
     },
   },
