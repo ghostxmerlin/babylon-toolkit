@@ -129,7 +129,9 @@ export function useDelegationService() {
           }
 
           if (acc[validatorAddress]) {
-            acc[validatorAddress].shares += parseFloat(item.delegation.shares);
+            acc[validatorAddress].shares += Number.parseFloat(
+              item.delegation.shares,
+            );
             acc[validatorAddress].amount += effectiveAmount;
             acc[validatorAddress].unbondableAmount += unbondableAmount;
             if (status !== "active") {
@@ -143,7 +145,7 @@ export function useDelegationService() {
             acc[validatorAddress] = {
               validator: validatorMap[validatorAddress],
               delegatorAddress: item.delegation.delegatorAddress,
-              shares: parseFloat(item.delegation.shares),
+              shares: Number.parseFloat(item.delegation.shares),
               amount: effectiveAmount,
               unbondableAmount: unbondableAmount,
               coin: "ubbn",
