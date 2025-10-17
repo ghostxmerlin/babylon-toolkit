@@ -4,10 +4,10 @@
   "license": "MIT",
   "scripts": {
     "build": "nx run-many --target=build --all",
-    "lint": "nx run-many --target=lint --all --verbose",
-    "test": "nx run-many --target=test --all --verbose",
+    "_lint": "nx run-many --target=lint --all --verbose",
+    "_test": "nx run-many --target=test --all --verbose",
     "nx:sync": "nx sync",
-    "prepare": "husky",
+    "_prepare": "husky",
     "ci:release": "nx run @internal/release:run"
   },
   "private": true,
@@ -30,22 +30,34 @@
     "husky": "^9.1.7",
     "nx": "21.3.7",
     "prettier": "^3.6.2",
+    "starknet": "^7.6.4",
     "syncpack": "^13.0.4",
     "tslib": "^2.3.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.44.1",
-    "uuid": "11.1.0"
+    "uuid": "11.1.0",
+    "vite-plugin-top-level-await": "^1.6.0"
   },
   "workspaces": [
     "packages/*",
     "tools/*",
-    "services/*"
+    "services/*",
+    "routes/*"
   ],
   "overrides": {
     "axios": "^1.12.2",
     "vite@^5.4.10": {
       "esbuild": "^0.25.8"
     }
+  },
+  "dependencies": {
+    "@morpho-org/blue-sdk": "^5.0.0",
+    "@morpho-org/blue-sdk-viem": "^4.0.0",
+    "@tanstack/react-query": "^5.90.2",
+    "usehooks-ts": "^3.1.1"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-darwin-arm64": "4.52.4"
   }
 }

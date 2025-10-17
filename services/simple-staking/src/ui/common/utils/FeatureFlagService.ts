@@ -67,4 +67,15 @@ export default {
   get IsTimelockRenewalEnabled() {
     return process.env.NEXT_PUBLIC_FF_TIMELOCK_RENEWAL === "true";
   },
+
+  /**
+   * Vault feature flag
+   *
+   * Purpose: Enables Vault Page with BTC + ETH dual wallet support
+   * Why needed: To gradually roll out vault functionality with ETH integration
+   * ETA for removal: TBD - Will be removed once vault is fully released
+   */
+  get IsVaultEnabled() {
+    return process.env.NEXT_PUBLIC_FF_VAULT === "true";
+  },
 };

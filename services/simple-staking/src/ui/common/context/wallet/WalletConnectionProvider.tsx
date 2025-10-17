@@ -10,6 +10,7 @@ import { useLocation } from "react-router";
 import { logTermsAcceptance } from "@/ui/common/api/logTermAcceptance";
 import { getNetworkConfigBBN } from "@/ui/common/config/network/bbn";
 import { getNetworkConfigBTC } from "@/ui/common/config/network/btc";
+import { getNetworkConfigETH } from "@/ui/common/config/network/eth";
 import { ClientError, ERROR_CODES } from "@/ui/common/errors";
 import { useLogger } from "@/ui/common/hooks/useLogger";
 import FeatureFlagService from "@/ui/common/utils/FeatureFlagService";
@@ -47,6 +48,10 @@ const config: ChainConfigArr = [
     ],
     config: getNetworkConfigBBN(),
   },
+  {
+    chain: "ETH",
+    config: getNetworkConfigETH(),
+  },
 ];
 
 export const WalletConnectionProvider = ({ children }: PropsWithChildren) => {
@@ -75,8 +80,12 @@ export const WalletConnectionProvider = ({ children }: PropsWithChildren) => {
   );
 
   const requiredChains = (
-    location.pathname.startsWith("/baby") ? ["BBN"] : ["BTC", "BBN"]
-  ) as ("BTC" | "BBN")[];
+    location.pathname.startsWith("/baby")
+      ? ["BBN"]
+      : location.pathname.startsWith("/vault")
+        ? ["BTC", "ETH"]
+        : ["BTC", "BBN"]
+  ) as ("BTC" | "BBN" | "ETH")[];
 
   return (
     <WalletProvider

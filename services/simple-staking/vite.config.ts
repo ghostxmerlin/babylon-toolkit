@@ -6,6 +6,8 @@ import { defineConfig } from "vite";
 import EnvironmentPlugin from "vite-plugin-environment";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { VitePluginRadar } from "vite-plugin-radar";
+import topLevelAwait from "vite-plugin-top-level-await";
+import wasm from "vite-plugin-wasm";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -25,6 +27,15 @@ const enableSentryPlugin =
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@routes/vault/wasm": resolve(__dirname, "../../routes/vault/wasm"),
+      "@babylonlabs-io/config": resolve(__dirname, "../../packages/babylon-config/src"),
+    },
+  },
+  optimizeDeps: {
+    exclude: ["@babylonlabs-io/config"],
+  },
   build: {
     outDir: "dist",
     sourcemap: true,
@@ -42,12 +53,20 @@ export default defineConfig({
             "@babylonlabs-io/btc-staking-ts",
             "@babylonlabs-io/core-ui",
           ],
-          wallets: ["@babylonlabs-io/wallet-connector"],
+          wallets: [
+            "@babylonlabs-io/wallet-connector",
+            "wagmi",
+            "viem",
+            "@reown/appkit",
+            "@reown/appkit-adapter-wagmi",
+          ],
         },
       },
     },
   },
   plugins: [
+    wasm(),
+    topLevelAwait(),
     react(),
     tsconfigPaths({
       projects: [resolve(__dirname, "./tsconfig.lib.json")],

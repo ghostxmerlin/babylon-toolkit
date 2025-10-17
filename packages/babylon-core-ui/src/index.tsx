@@ -17,6 +17,7 @@ export * from "./components/Card";
 export * from "./components/Toggle";
 export * from "./components/List";
 export * from "./components/Badge";
+export * from "./components/ActivityList";
 export * from "./components/SubSection";
 export * from "./components/CounterButton";
 export * from "./components/Menu";
@@ -26,9 +27,12 @@ export * from "./components/Copy";
 export * from "./components/Icons";
 export * from "./components/Warning";
 export * from "./components/Hint";
+export * from "./components/Step";
 
 export * from "./elements/FinalityProviderLogo";
 export * from "./elements/FinalityProviderItem";
+export * from "./elements/StatusBadge";
+export * from "./elements/ProviderItem";
 
 export * from "./widgets/form/Form";
 export * from "./widgets/form/NumberField";
