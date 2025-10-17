@@ -25,6 +25,19 @@ export const getPolicyForTransaction = async (
   },
 ): Promise<WalletPolicy> => {
   derivationPath = derivationPath + "/0/0"; // Append the last two levels for address index
+  console.log("Full Derivation Path:", derivationPath);
+  // Convert derivation path to taproot (purpose 86)
+  // const convertToTaprootPath = (path: string): string => {
+  //   // Split the path and replace the purpose (first part after m/) with 86'
+  //   const parts = path.split('/');
+  //   if (parts.length > 1) {
+  //     parts[1] = "86'"; // Set purpose to 86' for taproot
+  //   }
+  //   return parts.join('/');
+  // };
+
+  // const taprootPath = convertToTaprootPath(derivationPath);
+  //console.log("Using derivation path for policy:", taprootPath);
   switch (action.name) {
     case ActionName.SIGN_BTC_STAKING_TRANSACTION:
       return getStakingPolicy(contracts, derivationPath, transport);

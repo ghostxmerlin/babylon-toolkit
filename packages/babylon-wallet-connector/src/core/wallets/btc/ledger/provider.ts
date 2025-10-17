@@ -215,9 +215,12 @@ export class LedgerProvider implements IBTCProvider {
       // Get the master key fingerprint
       const fpr = await app.getMasterFingerprint();
       const derivationPathLv3 = this.getDerivationPath();
+      console.log("Derivation Path (3 levels):", derivationPathLv3);
+      console.log("Master Fingerprint:", fpr);
      
       const extendedPubkey = await app.getExtendedPubkey(derivationPathLv3);
       const accountPolicy = await this.getWalletPolicy(app, fpr, derivationPathLv3);
+      console.log("Account Policy:", accountPolicy);
       if (!accountPolicy) throw new Error("Could not retrieve the policy");
       const { address, publicKeyHex } = await this.getLedgerAccount(
         app,
@@ -256,6 +259,7 @@ export class LedgerProvider implements IBTCProvider {
     if (!this.ledgerWalletInfo?.address || !this.ledgerWalletInfo?.publicKeyHex) {
       throw new Error("Ledger is not connected");
     }
+    console.log("Signing PSBT hex:", psbtHex);
     if (!psbtHex) throw new Error("psbt hex is required");
     const psbtBase64 = Buffer.from(psbtHex, "hex").toString("base64");
     const transport = this.ledgerWalletInfo.app.transport;
