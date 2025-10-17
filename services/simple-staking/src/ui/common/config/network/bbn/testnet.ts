@@ -3,17 +3,17 @@ import { getUrlFromEnv } from "./urlUtils";
 export const BBN_TESTNET_RPC_URL = getUrlFromEnv(
   process.env.NEXT_PUBLIC_BABY_RPC_URL,
   "http://localhost:3000",
-  "https://rpc-dapp.testnet.babylonlabs.io",
+  "https://babylon-testnet-rpc.polkachu.com",
 );
 
 export const BBN_TESTNET_LCD_URL = getUrlFromEnv(
   process.env.NEXT_PUBLIC_BABY_LCD_URL,
   "http://localhost:1317",
-  "https://lcd-dapp.testnet.babylonlabs.io",
+  "https://babylon-testnet-api.polkachu.com",
 );
 
 export const bbnTestnet = {
-  chainId: "bbn-test-5",
+  chainId: "bbn-test-6",
   chainName: "Babylon Phase-2 Testnet",
   chainSymbolImageUrl:
     "https://raw.githubusercontent.com/babylonlabs-io/simple-staking/main/public/chain.png",

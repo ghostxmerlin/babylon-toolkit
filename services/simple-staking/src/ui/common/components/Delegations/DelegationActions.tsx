@@ -11,6 +11,7 @@ import { useFinalityProviderState } from "@/ui/common/state/FinalityProviderStat
 import { useStakingState } from "@/ui/common/state/StakingState";
 import { DelegationState } from "@/ui/common/types/delegations";
 import { FinalityProviderState } from "@/ui/common/types/finalityProviders";
+import FeatureFlags from "@/ui/common/utils/FeatureFlagService";
 
 interface DelegationActionsProps {
   state: string;
@@ -52,7 +53,8 @@ export const DelegationActions: React.FC<DelegationActionsProps> = ({
   const fpState = finalityProvider?.state;
   const isSlashed = fpState === FinalityProviderState.SLASHED;
 
-  const hasInsufficientBalance = bbnBalance === 0;
+  const hasInsufficientBalance =
+    !FeatureFlags.IsBabyBalanceCheckDisabled && bbnBalance === 0;
   const insufficientBalanceMessage = hasInsufficientBalance
     ? `Insufficient ${coinSymbol} Balance in ${networkFullName} Wallet`
     : "";

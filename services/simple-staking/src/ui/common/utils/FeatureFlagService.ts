@@ -67,4 +67,15 @@ export default {
   get IsTimelockRenewalEnabled() {
     return process.env.NEXT_PUBLIC_FF_TIMELOCK_RENEWAL === "true";
   },
+
+  /**
+   * DISABLE_BABY_BALANCE_CHECK feature flag
+   *
+   * Purpose: Allows disabling Babylon balance validation during staking flows
+   * Why needed: Useful for testing when RPC balance queries are unavailable
+   * ETA for removal: Remove once test environments provide reliable balance data
+   */
+  get IsBabyBalanceCheckDisabled() {
+    return process.env.NEXT_PUBLIC_FF_DISABLE_BABY_BALANCE_CHECK === "true";
+  },
 };

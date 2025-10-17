@@ -1,4 +1,6 @@
 // Check if the staking transaction is ready to be signed
+import FeatureFlags from "@/ui/common/utils/FeatureFlagService";
+
 export const isStakingSignReady = (
   // Parameter min and max values
   minAmount: number,
@@ -48,7 +50,7 @@ export const isStakingSignReady = (
       isReady: false,
       reason: "Not enough funds to cover fees for staking",
     };
-  } else if (bbnBalance === 0) {
+  } else if (!FeatureFlags.IsBabyBalanceCheckDisabled && bbnBalance === 0) {
     return {
       isReady: false,
       reason: "Insufficient BABY Balance in Babylon Wallet",

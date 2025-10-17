@@ -20,6 +20,7 @@ import {
   formatNumber,
   formatStakingAmount,
 } from "@/ui/common/utils/formTransforms";
+import FeatureFlags from "@/ui/common/utils/FeatureFlagService";
 
 import { useBalanceState } from "./BalanceState";
 import { StakingModalPage, useStakingState } from "./StakingState";
@@ -67,6 +68,7 @@ export function MultistakingState({ children }: PropsWithChildren) {
 
   const { stakableBtcBalance, bbnBalance } = useBalanceState();
   const { stakingInfo } = useStakingState();
+  const isBalanceCheckDisabled = FeatureFlags.IsBabyBalanceCheckDisabled;
 
   const formFields: FieldOptions[] = useMemo(
     () =>
@@ -136,7 +138,10 @@ export function MultistakingState({ children }: PropsWithChildren) {
             .test(
               "insufficientBabyBalance",
               "Insufficient BABY Balance",
-              () => bbnBalance > 0,
+              () =>
+                isBalanceCheckDisabled
+                  ? true
+                  : bbnBalance > 0,
             ),
           errors: {
             invalidFormat: { level: "error" },
@@ -167,7 +172,13 @@ export function MultistakingState({ children }: PropsWithChildren) {
             .moreThan(0, "Staking fee amount must be greater than 0."),
         },
       ] as const,
-    [stakingInfo, stakableBtcBalance, bbnBalance, maxFinalityProviders],
+    [
+      stakingInfo,
+      stakableBtcBalance,
+      bbnBalance,
+      maxFinalityProviders,
+      isBalanceCheckDisabled,
+    ],
   );
 
   const validationSchema = useMemo(() => {

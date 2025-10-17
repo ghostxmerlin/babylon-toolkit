@@ -99,6 +99,7 @@ function StakingState({ children }: PropsWithChildren) {
   const { handleError } = useError();
   const logger = useLogger();
   const babyPrice = usePrice("BABY");
+  const isBalanceCheckDisabled = FeatureFlags.IsBabyBalanceCheckDisabled;
 
   const minAmountValidator = useMemo(
     () => createMinAmountValidator(MIN_STAKING_AMOUNT),
@@ -109,8 +110,11 @@ function StakingState({ children }: PropsWithChildren) {
   const availableBalance = balance - getTotalPendingStake();
 
   const balanceValidator = useMemo(
-    () => createBalanceValidator(availableBalance),
-    [availableBalance],
+    () =>
+      isBalanceCheckDisabled
+        ? () => true
+        : createBalanceValidator(availableBalance),
+    [availableBalance, isBalanceCheckDisabled],
   );
 
   const isDisabled = useMemo(() => {
@@ -171,13 +175,16 @@ function StakingState({ children }: PropsWithChildren) {
               "invalidBalance",
               "Fee Amount Exceeds Balance",
               (value = 0) => {
+                if (isBalanceCheckDisabled) {
+                  return true;
+                }
                 const valueInMicroBaby = BigInt(Math.floor(value));
                 return valueInMicroBaby <= availableBalance;
               },
             ),
         },
       ] as const,
-    [availableBalance, minAmountValidator, balanceValidator],
+    [availableBalance, minAmountValidator, balanceValidator, isBalanceCheckDisabled],
   );
 
   const formSchema = useMemo(() => {
